@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#131534" />
+<title>静室 · Quiet Room</title>
+<meta name="description" content="为多动症与焦虑设计的小游戏合集——慢节奏、无压力、可暂停。" />
+<style>
+  :root {
+    --bg-deep: #0e0f1d;
+    --text: #f0e6ed;
+    --text-soft: #c5b5c4;
+    --text-dim: #7d6e80;
+    --pink: #f4a8c5;
+    --blue: #8ec5e8;
+    --panel: rgba(255, 255, 255, 0.04);
+    --panel-border: rgba(255, 255, 255, 0.12);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top, 32px) 16px env(safe-area-inset-bottom, 32px);
+    -webkit-font-smoothing: antialiased;
+    background: linear-gradient(160deg, #131534 0%, #1f1432 50%, #2c1730 100%);
+    background-attachment: fixed;
+    user-select: none;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(244,168,197,0.07), transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(142,197,232,0.07), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; position: relative; z-index: 1; }
+  header { text-align: center; padding: 48px 0 40px; }
+  h1 {
+    font-size: 30px;
+    font-weight: 300;
+    letter-spacing: 10px;
+    background: linear-gradient(135deg, var(--pink) 0%, var(--blue) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 10px;
+  }
+  .divider {
+    width: 40px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--text-dim), transparent);
+    margin: 16px auto;
+  }
+  .tagline {
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    line-height: 1.8;
+  }
+  .cards { display: flex; flex-direction: column; gap: 14px; }
+  .card {
+    background: var(--panel);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    padding: 22px;
+    text-decoration: none;
+    color: var(--text);
+    display: block;
+    transition: all 0.3s var(--ease-soft);
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent, var(--pink));
+    opacity: 0.85;
+  }
+  .card:hover {
+    transform: translateY(-3px);
+    border-color: var(--accent, var(--pink));
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 0 24px rgba(244,168,197,0.15);
+  }
+  .card:active { transform: translateY(-1px); }
+  .card-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .card-icon {
+    width: 52px; height: 52px;
+    background: rgba(244, 168, 197, 0.16);
+    border: 1px solid var(--accent, var(--pink));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+  }
+  .card-title { font-size: 17px; margin-bottom: 3px; letter-spacing: 2px; font-weight: 500; }
+  .card-en { font-size: 11px; color: var(--text-dim); letter-spacing: 3px; }
+  .card-desc { font-size: 12px; color: var(--text-soft); line-height: 1.7; margin-top: 4px; letter-spacing: 0.5px; }
+  .card-meta { margin-top: 10px; font-size: 11px; color: var(--text-dim); letter-spacing: 1.5px; }
+  .card.c-whisper  { --accent: #8ec5e8; }
+  .card.c-whisper .card-icon { background: rgba(142,197,232,0.16); }
+  .card.c-garden   { --accent: #a8d5b5; }
+  .card.c-garden  .card-icon { background: rgba(168,213,181,0.16); }
+  .card.c-relax    { --accent: #d4a574; }
+  .card.c-relax   .card-icon { background: rgba(212,165,116,0.16); }
+  footer {
+    text-align: center;
+    margin-top: 40px;
+    padding-bottom: 24px;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>静室</h1>
+      <div class="divider"></div>
+      <div class="tagline">Quiet Room<br/>为多动与焦虑而做的小游戏</div>
+    </header>
+    <div class="cards">
+      <a class="card c-whisper" href="identity-puzzle.html">
+        <div class="card-head">
+          <div class="card-icon">🕯️</div>
+          <div>
+            <div class="card-title">耳语编年</div>
+            <div class="card-en">Whisper Chronicles</div>
+          </div>
+        </div>
+        <div class="card-desc">五段故事，二十张面孔——听他们说话，找出谁在撒谎。<br/>逻辑推理 × 黑色幽默剧情。</div>
+        <div class="card-meta">5 章 · 每章 3 幕</div>
+      </a>
+      <a class="card c-garden" href="number-garden.html">
+        <div class="card-head">
+          <div class="card-icon">🌸</div>
+          <div>
+            <div class="card-title">数字花园</div>
+            <div class="card-en">Number Garden</div>
+          </div>
+        </div>
+        <div class="card-desc">用 +−×÷ 把数字凑成目标——完成一题，开出一朵花。<br/>无计时，无失败。</div>
+        <div class="card-meta">每题 30 秒 – 2 分钟</div>
+      </a>
+      <a class="card c-relax" href="relax.html">
+        <div class="card-head">
+          <div class="card-icon">🫧</div>
+          <div>
+            <div class="card-title">解压小屋</div>
+            <div class="card-en">Relax Cabin</div>
+          </div>
+        </div>
+        <div class="card-desc">触屏互动 · 慢节奏 · 释放手部能量。<br/>累了就开，没目标也可以。</div>
+        <div class="card-meta">随开随关</div>
+      </a>
+    </div>
+    <footer>
+      慢慢来 · 没有计时 · 累了就关掉<br/>
+      <span style="opacity: 0.6;">Made with care</span>
+    </footer>
+  </div>
+</body>
+</html>

@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>数字花园 · Number Garden</title>
+<style>
+  :root {
+    --bg: #f5f1ea;
+    --bg-card: #fbf8f3;
+    --ink: #4a4438;
+    --ink-soft: #8a8175;
+    --accent: #b8a07e;
+    --accent-soft: #d9c9b0;
+    --sage: #a9b89e;
+    --rose: #d4a5a0;
+    --sky: #a5b8c9;
+    --lavender: #b9a5c2;
+    --gold: #d9b97a;
+    --shadow: 0 2px 8px rgba(74, 68, 56, 0.08);
+    --shadow-lg: 0 4px 20px rgba(74, 68, 56, 0.12);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+
+  h1 {
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    color: var(--ink);
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--ink-soft);
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+
+  .game-card {
+    background: var(--bg-card);
+    border-radius: 24px;
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    color: var(--ink-soft);
+    margin-bottom: 20px;
+  }
+
+  .level-badge {
+    background: var(--accent-soft);
+    color: var(--ink);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-weight: 500;
+  }
+
+  .target {
+    text-align: center;
+    padding: 24px 0 16px;
+  }
+
+  .target-label {
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .target-number {
+    font-size: 64px;
+    font-weight: 300;
+    color: var(--accent);
+    letter-spacing: 2px;
+    line-height: 1;
+    transition: transform 0.3s ease;
+  }
+
+  .target-number.bump { transform: scale(1.1); }
+
+  .expression {
+    background: rgba(217, 201, 176, 0.2);
+    border-radius: 14px;
+    padding: 16px;
+    margin: 16px 0;
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: var(--ink);
+    font-weight: 400;
+    word-break: break-all;
+    text-align: center;
+    transition: background 0.3s ease;
+  }
+
+  .expression.empty {
+    color: var(--ink-soft);
+    font-size: 14px;
+    font-weight: 300;
+  }
+
+  .expression.success {
+    background: rgba(169, 184, 158, 0.3);
+    color: var(--sage);
+  }
+
+  .expression.warn {
+    background: rgba(212, 165, 160, 0.25);
+    color: var(--rose);
+  }
+
+  .current-value {
+    font-size: 13px;
+    color: var(--ink-soft);
+    text-align: center;
+    height: 18px;
+    margin-bottom: 12px;
+  }
+
+  .numbers-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .num-btn {
+    aspect-ratio: 1;
+    border-radius: 16px;
+    border: none;
+    background: var(--bg);
+    color: var(--ink);
+    font-size: 26px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow);
+    font-family: inherit;
+  }
+
+  .num-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(74, 68, 56, 0.12);
+  }
+
+  .num-btn:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  .num-btn:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+  }
+
+  .num-btn.color-0 { background: #f0e6d2; }
+  .num-btn.color-1 { background: #e8e0d1; }
+  .num-btn.color-2 { background: #e6d9c5; }
+  .num-btn.color-3 { background: #ddd0bd; }
+  .num-btn.color-4 { background: #d4cdb8; }
+  .num-btn.color-5 { background: #c9c3b0; }
+
+  .ops-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .op-btn {
+    padding: 14px 0;
+    border-radius: 14px;
+    border: none;
+    background: var(--accent-soft);
+    color: var(--ink);
+    font-size: 22px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow);
+    font-family: inherit;
+  }
+
+  .op-btn:hover:not(:disabled) {
+    background: var(--accent);
+    color: white;
+  }
+
+  .op-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+
+  .actions-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+
+  .action-btn {
+    padding: 12px 0;
+    border-radius: 12px;
+    border: 1px solid var(--accent-soft);
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    letter-spacing: 1px;
+  }
+
+  .action-btn:hover {
+    background: var(--accent-soft);
+    color: var(--ink);
+  }
+
+  .garden {
+    margin-top: 24px;
+    padding: 16px;
+    background: var(--bg-card);
+    border-radius: 18px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: var(--shadow);
+  }
+
+  .garden-title {
+    font-size: 12px;
+    color: var(--ink-soft);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+    text-align: center;
+  }
+
+  .flowers {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+    min-height: 40px;
+    align-items: center;
+  }
+
+  .flower {
+    font-size: 24px;
+    animation: bloom 0.6s ease;
+    transform-origin: center bottom;
+  }
+
+  .flower-empty {
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-style: italic;
+  }
+
+  @keyframes bloom {
+    0% { transform: scale(0) rotate(-20deg); opacity: 0; }
+    60% { transform: scale(1.2) rotate(10deg); }
+    100% { transform: scale(1) rotate(0); opacity: 1; }
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--ink);
+    color: var(--bg-card);
+    padding: 12px 24px;
+    border-radius: 20px;
+    font-size: 14px;
+    opacity: 0;
+    transition: all 0.3s ease;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+
+  .breathe {
+    text-align: center;
+    margin-top: 16px;
+    font-size: 11px;
+    color: var(--ink-soft);
+    letter-spacing: 3px;
+    animation: breathe 6s ease-in-out infinite;
+  }
+
+  @keyframes breathe {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  footer {
+    margin-top: 24px;
+    font-size: 11px;
+    color: var(--ink-soft);
+    text-align: center;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>数字花园</h1>
+    <div class="subtitle">Number Garden · 慢慢来，没有计时</div>
+  </header>
+
+  <main class="game-card">
+    <div class="top-bar">
+      <span class="level-badge" id="level">第 1 题</span>
+      <span id="hint-text">用数字与运算符凑出目标</span>
+    </div>
+
+    <div class="target">
+      <div class="target-label">目标</div>
+      <div class="target-number" id="target">12</div>
+    </div>
+
+    <div class="expression empty" id="expression">点击数字开始</div>
+    <div class="current-value" id="current-value">&nbsp;</div>
+
+    <div class="numbers-grid" id="numbers"></div>
+
+    <div class="ops-row">
+      <button class="op-btn" data-op="+">+</button>
+      <button class="op-btn" data-op="−">−</button>
+      <button class="op-btn" data-op="×">×</button>
+      <button class="op-btn" data-op="÷">÷</button>
+    </div>
+
+    <div class="actions-row">
+      <button class="action-btn" id="undo">撤销</button>
+      <button class="action-btn" id="reset">重来</button>
+      <button class="action-btn" id="skip">换一题</button>
+    </div>
+  </main>
+
+  <section class="garden">
+    <div class="garden-title">我的花园</div>
+    <div class="flowers" id="flowers">
+      <span class="flower-empty">完成题目，开出第一朵花</span>
+    </div>
+  </section>
+
+  <div class="breathe">深 · 呼 · 吸</div>
+
+  <footer>无对错 · 无失败 · 累了就关掉</footer>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+  const FLOWERS = ['🌸','🌷','🌼','🌺','🌻','💐','🪷','🌹','🏵️','💮'];
+
+  const state = {
+    target: 0,
+    numbers: [],
+    used: [],
+    tokens: [],
+    level: 1,
+    flowers: [],
+  };
+
+  const el = {
+    target: document.getElementById('target'),
+    expression: document.getElementById('expression'),
+    currentValue: document.getElementById('current-value'),
+    numbers: document.getElementById('numbers'),
+    level: document.getElementById('level'),
+    hint: document.getElementById('hint-text'),
+    undo: document.getElementById('undo'),
+    reset: document.getElementById('reset'),
+    skip: document.getElementById('skip'),
+    flowers: document.getElementById('flowers'),
+    toast: document.getElementById('toast'),
+  };
+
+  // ===== 关卡生成 =====
+  // 难度分层：第1-3关用2-3个数字，4-6关用3个，7+用4个
+  function generatePuzzle(level) {
+    const useCount = level < 4 ? 2 + Math.floor(Math.random() * 2)
+                   : level < 8 ? 3
+                   : 3 + Math.floor(Math.random() * 2);
+
+    for (let attempt = 0; attempt < 200; attempt++) {
+      const pool = [];
+      const totalNums = Math.max(useCount + 1, 4);
+      for (let i = 0; i < totalNums; i++) {
+        const max = level < 4 ? 9 : level < 8 ? 12 : 15;
+        pool.push(1 + Math.floor(Math.random() * max));
+      }
+
+      const picked = [...pool].sort(() => Math.random() - 0.5).slice(0, useCount);
+      const target = randomCombine(picked, level);
+      if (target !== null && target >= 1 && target <= 99 && Number.isInteger(target)) {
+        return { numbers: pool, target };
+      }
+    }
+    return { numbers: [2, 3, 4, 6], target: 12 };
+  }
+
+  function randomCombine(nums, level) {
+    const allowMulDiv = level >= 2;
+    const ops = allowMulDiv ? ['+', '-', '*', '/'] : ['+', '-'];
+    let arr = [...nums];
+    let result = arr.shift();
+    while (arr.length) {
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      const next = arr.shift();
+      if (op === '+') result = result + next;
+      else if (op === '-') result = result - next;
+      else if (op === '*') result = result * next;
+      else if (op === '/') {
+        if (next === 0 || result % next !== 0) return null;
+        result = result / next;
+      }
+    }
+    return result;
+  }
+
+  // ===== 渲染 =====
+  function render() {
+    el.target.textContent = state.target;
+    el.level.textContent = `第 ${state.level} 题`;
+
+    el.numbers.innerHTML = '';
+    state.numbers.forEach((n, i) => {
+      const btn = document.createElement('button');
+      btn.className = `num-btn color-${i % 6}`;
+      btn.textContent = n;
+      btn.disabled = state.used.includes(i) || lastTokenIsNumber();
+      btn.addEventListener('click', () => pushNumber(i));
+      el.numbers.appendChild(btn);
+    });
+
+    if (state.tokens.length === 0) {
+      el.expression.textContent = '点击数字开始';
+      el.expression.className = 'expression empty';
+      el.currentValue.innerHTML = '&nbsp;';
+    } else {
+      const display = state.tokens.map(t => t.display).join(' ');
+      el.expression.textContent = display;
+      el.expression.className = 'expression';
+      const val = evaluate();
+      if (val === null) {
+        el.currentValue.textContent = '⋯';
+      } else {
+        el.currentValue.textContent = `当前 = ${formatNumber(val)}`;
+        if (val === state.target && state.used.length === state.numbers.length) {
+          el.expression.classList.add('success');
+        }
+      }
+    }
+
+    renderFlowers();
+  }
+
+  function renderFlowers() {
+    if (state.flowers.length === 0) {
+      el.flowers.innerHTML = '<span class="flower-empty">完成题目，开出第一朵花</span>';
+      return;
+    }
+    el.flowers.innerHTML = '';
+    state.flowers.forEach(f => {
+      const span = document.createElement('span');
+      span.className = 'flower';
+      span.textContent = f;
+      el.flowers.appendChild(span);
+    });
+  }
+
+  function formatNumber(n) {
+    if (Number.isInteger(n)) return n.toString();
+    return n.toFixed(2).replace(/\.?0+$/, '');
+  }
+
+  // ===== 表达式逻辑 =====
+  function lastTokenIsNumber() {
+    return state.tokens.length > 0 && state.tokens[state.tokens.length - 1].type === 'num';
+  }
+
+  function pushNumber(idx) {
+    if (state.used.includes(idx)) return;
+    if (lastTokenIsNumber()) return;
+    state.tokens.push({ type: 'num', value: state.numbers[idx], display: state.numbers[idx].toString(), idx });
+    state.used.push(idx);
+    render();
+    checkWin();
+  }
+
+  function pushOp(op) {
+    if (state.tokens.length === 0) return;
+    if (!lastTokenIsNumber()) {
+      // 替换上一个运算符
+      state.tokens[state.tokens.length - 1] = { type: 'op', value: opToJs(op), display: op };
+    } else {
+      state.tokens.push({ type: 'op', value: opToJs(op), display: op });
+    }
+    render();
+  }
+
+  function opToJs(op) {
+    return { '+': '+', '−': '-', '×': '*', '÷': '/' }[op];
+  }
+
+  function evaluate() {
+    if (state.tokens.length === 0) return null;
+    if (!lastTokenIsNumber()) return null;
+    try {
+      // 标准运算优先级
+      const nums = [];
+      const ops = [];
+      const prec = { '+': 1, '-': 1, '*': 2, '/': 2 };
+      const apply = () => {
+        const b = nums.pop(), a = nums.pop(), o = ops.pop();
+        if (o === '+') nums.push(a + b);
+        else if (o === '-') nums.push(a - b);
+        else if (o === '*') nums.push(a * b);
+        else if (o === '/') {
+          if (b === 0) throw new Error('div0');
+          nums.push(a / b);
+        }
+      };
+      for (const t of state.tokens) {
+        if (t.type === 'num') nums.push(t.value);
+        else {
+          while (ops.length && prec[ops[ops.length - 1]] >= prec[t.value]) apply();
+          ops.push(t.value);
+        }
+      }
+      while (ops.length) apply();
+      return nums[0];
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function undo() {
+    if (state.tokens.length === 0) return;
+    const last = state.tokens.pop();
+    if (last.type === 'num') {
+      state.used = state.used.filter(i => i !== last.idx);
+    }
+    render();
+  }
+
+  function reset() {
+    state.tokens = [];
+    state.used = [];
+    render();
+  }
+
+  function newPuzzle() {
+    const p = generatePuzzle(state.level);
+    state.numbers = p.numbers;
+    state.target = p.target;
+    state.tokens = [];
+    state.used = [];
+    el.target.classList.add('bump');
+    setTimeout(() => el.target.classList.remove('bump'), 300);
+    render();
+  }
+
+  function checkWin() {
+    if (state.used.length !== state.numbers.length) return;
+    const v = evaluate();
+    if (v === state.target) {
+      setTimeout(() => {
+        const flower = FLOWERS[Math.floor(Math.random() * FLOWERS.length)];
+        state.flowers.push(flower);
+        if (state.flowers.length > 30) state.flowers.shift();
+        showToast(`+ 1 朵花 🌿`);
+        state.level += 1;
+        saveState();
+        setTimeout(newPuzzle, 900);
+      }, 400);
+    } else {
+      el.expression.classList.add('warn');
+      setTimeout(() => el.expression.classList.remove('warn'), 500);
+      showToast('没事，再试一次');
+    }
+  }
+
+  function showToast(msg) {
+    el.toast.textContent = msg;
+    el.toast.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(() => el.toast.classList.remove('show'), 1600);
+  }
+
+  // ===== 持久化 =====
+  function saveState() {
+    try {
+      localStorage.setItem('number-garden', JSON.stringify({
+        level: state.level,
+        flowers: state.flowers,
+      }));
+    } catch (e) {}
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem('number-garden');
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      if (s.level) state.level = s.level;
+      if (Array.isArray(s.flowers)) state.flowers = s.flowers;
+    } catch (e) {}
+  }
+
+  // ===== 事件 =====
+  document.querySelectorAll('.op-btn').forEach(b => {
+    b.addEventListener('click', () => pushOp(b.dataset.op));
+  });
+  el.undo.addEventListener('click', undo);
+  el.reset.addEventListener('click', reset);
+  el.skip.addEventListener('click', () => {
+    showToast('换一题');
+    newPuzzle();
+  });
+
+  // 键盘支持
+  document.addEventListener('keydown', (e) => {
+    if (e.key >= '0' && e.key <= '9') {
+      const v = parseInt(e.key);
+      const idx = state.numbers.findIndex((n, i) => n === v && !state.used.includes(i));
+      if (idx !== -1) pushNumber(idx);
+    } else if (['+', '-', '*', '/'].includes(e.key)) {
+      const map = { '+': '+', '-': '−', '*': '×', '/': '÷' };
+      pushOp(map[e.key]);
+    } else if (e.key === 'Backspace') {
+      undo();
+    } else if (e.key === 'Escape') {
+      reset();
+    }
+  });
+
+  // 启动
+  loadState();
+  newPuzzle();
+</script>
+</body>
+</html>

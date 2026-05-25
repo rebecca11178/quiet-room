@@ -1,0 +1,2232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<title>Whisper Chronicles · 耳语编年</title>
+<style>
+  :root {
+    --bg-deep: #0e0f1d;
+    --text: #f0e6ed;
+    --text-soft: #c5b5c4;
+    --text-dim: #7d6e80;
+
+    --pink: #f4a8c5;
+    --pink-deep: #d97aab;
+    --blue: #8ec5e8;
+    --blue-deep: #5a9bc7;
+
+    --good: #a8d5b5;
+    --good-bg: rgba(168, 213, 181, 0.16);
+    --bad: #e89eb0;
+    --bad-bg: rgba(232, 158, 176, 0.16);
+    --hint: #f4c98a;
+    --gold: #f4d27a;
+
+    --panel: rgba(255, 255, 255, 0.04);
+    --panel-bright: rgba(255, 255, 255, 0.08);
+    --panel-border: rgba(255, 255, 255, 0.12);
+    --shadow-sm: 0 2px 12px rgba(0, 0, 0, 0.25);
+    --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.45);
+
+    --ch-color: var(--pink);
+    --ch-color-2: var(--blue);
+    --ch-color-soft: rgba(244, 168, 197, 0.18);
+
+    --ease-out-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top, 16px) 12px env(safe-area-inset-bottom, 24px);
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    background: linear-gradient(160deg, #131534 0%, #1f1432 50%, #2c1730 100%);
+    background-attachment: fixed;
+    transition: background 0.8s var(--ease-out-soft);
+    overflow-x: hidden;
+  }
+
+  body.theme-office     { background: linear-gradient(160deg, #0e1834 0%, #1a2548 55%, #1d2a52 100%); }
+  body.theme-manor      { background: linear-gradient(160deg, #1c1612 0%, #2c1f17 55%, #2a1812 100%); }
+  body.theme-heart      { background: linear-gradient(160deg, #2a1426 0%, #3a1c3a 55%, #3a1d36 100%); }
+  body.theme-court      { background: linear-gradient(160deg, #14201c 0%, #1d2c25 55%, #1a2820 100%); }
+  body.theme-threshold  { background: linear-gradient(160deg, #15122a 0%, #211a3a 55%, #1d1730 100%); }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: radial-gradient(circle at 20% 30%, rgba(244,168,197,0.06), transparent 50%),
+                      radial-gradient(circle at 80% 70%, rgba(142,197,232,0.06), transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .app { max-width: 460px; margin: 0 auto; position: relative; z-index: 1; }
+
+  .screen { display: none; animation: fadeIn 0.4s var(--ease-out-soft); }
+  .screen.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .hero { text-align: center; padding: 36px 0 32px; }
+  .hero h1 {
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: 8px;
+    background: linear-gradient(135deg, var(--pink) 0%, var(--blue) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .hero .tagline {
+    font-size: 12px;
+    color: var(--text-dim);
+    letter-spacing: 4px;
+    font-weight: 300;
+  }
+  .hero .divider {
+    width: 40px; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--text-dim), transparent);
+    margin: 14px auto;
+  }
+
+  .chapter-card {
+    background: var(--panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    padding: 18px 18px 16px;
+    margin-bottom: 14px;
+    cursor: pointer;
+    transition: all 0.35s var(--ease-out-soft);
+    position: relative;
+    overflow: hidden;
+  }
+  .chapter-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--ch-color), var(--ch-color-2, var(--ch-color)));
+    opacity: 0.85;
+  }
+  .chapter-card.unlocked:hover {
+    transform: translateY(-3px);
+    border-color: var(--ch-color);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3), 0 0 24px var(--ch-color-soft);
+  }
+  .chapter-card.locked { opacity: 0.5; cursor: pointer; }
+  .chapter-card.complete::after {
+    content: '✓';
+    position: absolute;
+    top: 14px; right: 18px;
+    width: 22px; height: 22px;
+    background: var(--good);
+    color: var(--bg-deep);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .chapter-head { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+  .chapter-icon {
+    width: 52px; height: 52px;
+    background: var(--ch-color-soft);
+    border: 1px solid var(--ch-color);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+    flex-shrink: 0;
+    box-shadow: 0 0 16px var(--ch-color-soft);
+  }
+  .chapter-meta { flex: 1; min-width: 0; }
+  .chapter-num { font-size: 10px; color: var(--text-dim); letter-spacing: 3px; margin-bottom: 3px; }
+  .chapter-title { font-size: 16px; color: var(--text); margin-bottom: 3px; letter-spacing: 1.5px; font-weight: 500; }
+  .chapter-sub { font-size: 12px; color: var(--text-dim); line-height: 1.5; }
+  .chapter-progress {
+    margin-top: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-soft);
+    letter-spacing: 1px;
+  }
+  .progress-bar {
+    flex: 1; height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-left: 12px;
+    max-width: 120px;
+  }
+  .progress-fill { height: 100%; background: var(--ch-color); transition: width 0.6s var(--ease-out-soft); box-shadow: 0 0 8px var(--ch-color-soft); }
+
+  .cinematic {
+    min-height: 80vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    cursor: pointer;
+    text-align: center;
+    position: relative;
+  }
+  .cine-frame { max-width: 380px; animation: cineIn 0.7s var(--ease-out-spring); }
+  @keyframes cineIn {
+    from { opacity: 0; transform: translateY(16px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .cine-chapter-tag { font-size: 10px; letter-spacing: 6px; color: var(--text-dim); margin-bottom: 28px; }
+  .cine-text { font-size: 19px; line-height: 1.95; color: var(--text); margin-bottom: 20px; font-weight: 300; letter-spacing: 1.5px; }
+  .cine-quote { font-size: 17px; line-height: 1.75; color: var(--text-soft); font-style: italic; margin: 16px 0; padding: 0 20px; }
+  .cine-character { display: flex; flex-direction: column; align-items: center; margin-bottom: 24px; }
+  .cine-avatar {
+    width: 76px; height: 76px;
+    border: 1.5px solid var(--ch-color);
+    background: var(--ch-color-soft);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 38px;
+    margin-bottom: 12px;
+    box-shadow: 0 0 24px var(--ch-color-soft);
+    animation: float 4s ease-in-out infinite;
+  }
+  @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+  .cine-name { font-size: 15px; color: var(--text); letter-spacing: 1.5px; margin-bottom: 2px; font-weight: 500; }
+  .cine-role { font-size: 11px; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; }
+  .cine-hint { margin-top: 32px; font-size: 11px; color: var(--text-dim); letter-spacing: 5px; animation: pulse 2.5s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+  .cine-skip {
+    position: absolute;
+    top: 20px; right: 16px;
+    font-size: 11px;
+    color: var(--text-dim);
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    padding: 5px 12px;
+    border-radius: 14px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    font-family: inherit;
+    backdrop-filter: blur(8px);
+  }
+  .cine-skip:hover { color: var(--text-soft); border-color: var(--text-soft); }
+
+  /* ====== Acts (per-chapter scene picker) ====== */
+  .acts-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 16px 0 24px;
+    padding: 0 4px;
+  }
+  .acts-title-wrap { flex: 1; min-width: 0; }
+  .acts-chapter-tag {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+  }
+  .acts-title {
+    font-size: 18px;
+    color: var(--text);
+    letter-spacing: 2px;
+    margin-top: 2px;
+    font-weight: 500;
+  }
+  .acts-list { display: flex; flex-direction: column; gap: 12px; }
+  .act-card {
+    background: var(--panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: all 0.3s var(--ease-out-soft);
+    position: relative;
+    overflow: hidden;
+  }
+  .act-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--ch-color);
+    opacity: 0.85;
+    transition: opacity 0.3s;
+  }
+  .act-card.locked { opacity: 0.4; cursor: not-allowed; }
+  .act-card.locked::before { opacity: 0.3; }
+  .act-card.available:hover {
+    transform: translateY(-2px);
+    border-color: var(--ch-color);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25), 0 0 16px var(--ch-color-soft);
+  }
+  .act-card.available:active { transform: translateY(0); }
+  .act-card.completed { border-color: var(--good); }
+  .act-card.completed::before { background: var(--good); }
+  .act-num {
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 3px;
+    margin-bottom: 3px;
+  }
+  .act-title {
+    font-size: 15px;
+    color: var(--text);
+    letter-spacing: 1.5px;
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .act-meta {
+    font-size: 11px;
+    color: var(--text-soft);
+    letter-spacing: 1.5px;
+  }
+  .act-status {
+    position: absolute;
+    top: 16px; right: 16px;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+  }
+  .act-status.completed { color: var(--good); }
+  .act-status.current { color: var(--ch-color); }
+  .acts-extras {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 20px;
+    align-items: center;
+  }
+
+  .top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding: 0 4px;
+  }
+  .top-left { display: flex; align-items: center; gap: 12px; }
+  .icon-btn {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    border: 1px solid var(--panel-border);
+    background: var(--panel);
+    color: var(--text-soft);
+    font-size: 14px;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+    transition: all 0.25s var(--ease-out-soft);
+    font-family: inherit;
+    backdrop-filter: blur(8px);
+  }
+  .icon-btn:hover { color: var(--ch-color); border-color: var(--ch-color); }
+  .icon-btn:active { transform: scale(0.92); }
+
+  .timer {
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 16px;
+    color: var(--text-soft);
+    letter-spacing: 1.5px;
+    font-weight: 300;
+  }
+  .hearts { display: flex; gap: 6px; }
+  .heart {
+    font-size: 20px;
+    color: var(--pink);
+    filter: drop-shadow(0 0 6px rgba(244,168,197,0.4));
+    transition: all 0.4s var(--ease-out-spring);
+  }
+  .heart.lost { color: var(--text-dim); filter: none; transform: scale(0.8); opacity: 0.5; }
+  .heart.shake { animation: heartBreak 0.5s ease; }
+  @keyframes heartBreak {
+    0%, 100% { transform: scale(1); }
+    20% { transform: scale(1.3) rotate(-10deg); }
+    60% { transform: scale(0.7) rotate(10deg); }
+  }
+
+  .puzzle-header { text-align: center; margin-bottom: 8px; padding: 0 8px; }
+  .puzzle-chapter { font-size: 10px; color: var(--text-dim); letter-spacing: 4px; }
+  .puzzle-level { font-size: 14px; color: var(--ch-color); margin-top: 3px; letter-spacing: 2px; font-weight: 500; }
+  .puzzle-size {
+    display: inline-block;
+    font-size: 10px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+    margin-top: 4px;
+    padding: 2px 10px;
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    background: var(--panel);
+  }
+  .echo {
+    font-size: 12px;
+    color: var(--text-soft);
+    text-align: center;
+    min-height: 18px;
+    margin: 8px 0;
+    letter-spacing: 1px;
+    font-style: italic;
+    transition: opacity 0.3s;
+  }
+
+  .grid {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 14px;
+    /* grid-template-columns is set inline per puzzle */
+  }
+  .cell {
+    aspect-ratio: 0.84;
+    background: var(--panel);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--ch-color);
+    border-radius: 12px;
+    padding: 6px 4px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.25s var(--ease-out-soft);
+    position: relative;
+    overflow: hidden;
+    box-shadow: inset 0 0 12px rgba(255,255,255,0.02);
+  }
+  .cell::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, var(--ch-color-soft), transparent 50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .cell:hover::before { opacity: 0.5; }
+  .cell:active { transform: scale(0.94); box-shadow: 0 0 16px var(--ch-color-soft); }
+  .cell.visited { background: var(--panel-bright); }
+  .cell.marked-good { background: var(--good-bg); border-color: var(--good); box-shadow: 0 0 16px rgba(168, 213, 181, 0.2); }
+  .cell.marked-bad  { background: var(--bad-bg);  border-color: var(--bad);  box-shadow: 0 0 16px rgba(232, 158, 176, 0.2); }
+  .cell.locked { cursor: default; }
+  .cell.shake { animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-5px); }
+    40%, 80% { transform: translateX(5px); }
+  }
+
+  .avatar {
+    font-size: 28px;
+    line-height: 1;
+    margin-top: 4px;
+    filter: drop-shadow(0 0 4px var(--ch-color-soft));
+    transition: transform 0.3s var(--ease-out-spring);
+  }
+  .cell:hover .avatar { transform: scale(1.08); }
+  .cell.marked-good .avatar { filter: drop-shadow(0 0 6px rgba(168, 213, 181, 0.4)); }
+  .cell.marked-bad  .avatar { filter: drop-shadow(0 0 6px rgba(232, 158, 176, 0.4)); }
+  /* bigger avatars in smaller grids (easy: 3x3 = roomy cells) */
+  .grid.size-easy .avatar { font-size: 42px; margin-top: 6px; }
+  .grid.size-easy .name { font-size: 14px; }
+
+  .cell-info { width: 100%; text-align: center; margin-top: 2px; }
+  .name { font-size: 11px; color: var(--text); line-height: 1.1; margin-bottom: 1px; letter-spacing: 0.5px; font-weight: 500; }
+  .prof { font-size: 9px; color: var(--text-dim); line-height: 1; letter-spacing: 1px; text-transform: uppercase; }
+  .grid.size-easy .prof { font-size: 11px; }
+
+  .mark-badge {
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    font-size: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--bg-deep);
+    font-weight: 600;
+    animation: badgeIn 0.3s var(--ease-out-spring);
+  }
+  @keyframes badgeIn { from { transform: scale(0); } to { transform: scale(1); } }
+  .mark-badge.good { background: var(--good); }
+  .mark-badge.bad  { background: var(--bad); }
+  .visited-dot {
+    position: absolute;
+    top: 5px; left: 5px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--ch-color);
+    opacity: 0.6;
+  }
+
+  .ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    pointer-events: none;
+    width: 10px; height: 10px;
+    margin-left: -5px; margin-top: -5px;
+    animation: ripple 0.6s ease-out;
+    z-index: 1;
+  }
+  @keyframes ripple { to { transform: scale(25); opacity: 0; } }
+
+  .actions {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .action-btn {
+    padding: 12px 0;
+    border: 1px solid;
+    background: var(--panel);
+    backdrop-filter: blur(8px);
+    border-radius: 12px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 3px;
+    transition: all 0.25s var(--ease-out-soft);
+    position: relative;
+    overflow: hidden;
+  }
+  .action-btn:active { transform: scale(0.96); }
+  .btn-notebook { color: var(--good); border-color: var(--good); }
+  .btn-hint { color: var(--ch-color); border-color: var(--ch-color); }
+  .btn-help { color: var(--hint); border-color: var(--hint); }
+  .btn-notebook:hover { background: var(--good-bg); }
+  .btn-hint:hover { background: var(--ch-color-soft); }
+  .btn-help:hover { background: rgba(244, 201, 138, 0.15); }
+
+  .back-bar { margin-top: 16px; text-align: center; }
+  .back-link {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    font-family: inherit;
+    padding: 8px 16px;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--text-soft); }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(14, 15, 29, 0.78);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; animation: fadeIn 0.3s; }
+  .modal {
+    background: linear-gradient(180deg, rgba(31,21,50,0.95) 0%, rgba(20,15,35,0.95) 100%);
+    border: 1px solid var(--ch-color);
+    border-radius: 18px;
+    padding: 24px 20px;
+    max-width: 360px;
+    width: 100%;
+    box-shadow: var(--shadow-lg), 0 0 32px var(--ch-color-soft);
+    animation: modalPop 0.35s var(--ease-out-spring);
+    backdrop-filter: blur(20px);
+  }
+  @keyframes modalPop {
+    from { transform: scale(0.9) translateY(20px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+  .modal-title { text-align: center; font-size: 16px; color: var(--text); margin-bottom: 8px; letter-spacing: 4px; font-weight: 500; }
+  .modal-sub { text-align: center; font-size: 12px; color: var(--text-soft); margin-bottom: 4px; letter-spacing: 1px; }
+  .modal-body { color: var(--text-soft); font-size: 13px; line-height: 1.9; margin: 14px 0; }
+  .modal-buttons { display: flex; flex-direction: column; gap: 10px; }
+  .modal-btn {
+    width: 100%;
+    padding: 13px;
+    border: 1px solid var(--ch-color);
+    background: var(--panel);
+    color: var(--ch-color);
+    border-radius: 12px;
+    font-size: 14px;
+    cursor: pointer;
+    font-family: inherit;
+    letter-spacing: 4px;
+    transition: all 0.25s var(--ease-out-soft);
+    backdrop-filter: blur(8px);
+    font-weight: 500;
+  }
+  .modal-btn:hover { background: var(--ch-color-soft); }
+  .modal-btn:active { transform: scale(0.97); }
+  .modal-btn.secondary { color: var(--text-soft); border-color: var(--panel-border); }
+  .modal-btn.good { color: var(--good); border-color: var(--good); }
+  .modal-btn.good:hover { background: var(--good-bg); }
+  .modal-btn.bad { color: var(--bad); border-color: var(--bad); }
+  .modal-btn.bad:hover { background: var(--bad-bg); }
+  .row { display: flex; gap: 10px; }
+  .row .modal-btn { flex: 1; }
+
+  .preview-avatar {
+    font-size: 64px;
+    text-align: center;
+    filter: drop-shadow(0 0 16px var(--ch-color-soft));
+    margin: 2px 0 8px;
+    animation: float 4s ease-in-out infinite;
+  }
+  .preview-name { text-align: center; font-size: 18px; color: var(--text); letter-spacing: 2px; font-weight: 500; }
+  .preview-prof { text-align: center; color: var(--text-dim); font-size: 11px; margin-top: 4px; text-transform: uppercase; letter-spacing: 3px; }
+  .quote {
+    margin: 16px 4px;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, var(--ch-color-soft), transparent 80%);
+    border-left: 2px solid var(--ch-color);
+    border-radius: 8px;
+    font-style: italic;
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.7;
+    text-align: left;
+    min-height: 50px;
+  }
+  .quote-attribution { text-align: right; margin-top: 8px; font-size: 10px; color: var(--text-dim); font-style: normal; letter-spacing: 1.5px; }
+  .marked-tag {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 7px;
+    background: var(--panel);
+    border-radius: 8px;
+    margin-bottom: 10px;
+    letter-spacing: 3px;
+  }
+  .marked-tag.good { color: var(--good); }
+  .marked-tag.bad  { color: var(--bad); }
+
+  .notebook-list { max-height: 55vh; overflow-y: auto; padding-right: 4px; }
+  .note-item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .note-item:hover { background: var(--panel-bright); }
+  .note-item:active { transform: scale(0.98); }
+  .note-item .note-who { font-size: 11px; color: var(--text-soft); letter-spacing: 1px; margin-bottom: 4px; }
+  .note-item .note-quote { font-style: italic; color: var(--text); line-height: 1.6; font-size: 12px; }
+  .note-item.marked-good { border-left: 3px solid var(--good); }
+  .note-item.marked-bad  { border-left: 3px solid var(--bad); }
+  .empty-state { text-align: center; color: var(--text-dim); font-size: 12px; padding: 24px 0; font-style: italic; }
+
+  .narrative { padding: 12px 4px; }
+  .narrative-p { margin-bottom: 14px; color: var(--text); font-size: 14px; line-height: 1.95; letter-spacing: 0.5px; }
+  .narrative-p:last-child { margin-bottom: 0; }
+
+  .toast {
+    position: fixed;
+    bottom: 36px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: linear-gradient(135deg, rgba(31,21,50,0.95), rgba(50,25,45,0.95));
+    border: 1px solid var(--ch-color);
+    color: var(--text);
+    padding: 11px 22px;
+    border-radius: 24px;
+    font-size: 13px;
+    opacity: 0;
+    transition: all 0.3s var(--ease-out-soft);
+    pointer-events: none;
+    z-index: 200;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(8px);
+    letter-spacing: 1px;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+  @media (max-width: 380px) {
+    .name { font-size: 10px; }
+    .prof { font-size: 8px; }
+    .avatar { font-size: 24px; }
+    .hero h1 { font-size: 24px; letter-spacing: 6px; }
+  }
+</style>
+</head>
+<body class="theme-default">
+  <div class="app">
+
+    <div class="screen active" id="screen-chapters">
+      <div class="hero">
+        <h1>Whisper Chronicles</h1>
+        <div class="divider"></div>
+        <div class="tagline">耳语编年 · 五段故事 · 一句真话</div>
+      </div>
+      <div id="chapter-list"></div>
+      <div style="text-align:center; margin-top: 16px;">
+        <button class="back-link" id="btn-reset-all">清除全部进度</button>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-cinematic">
+      <div class="cinematic" id="cinematic-stage">
+        <button class="cine-skip" id="cine-skip">跳过</button>
+        <div id="cine-content"></div>
+        <div class="cine-hint">轻触继续</div>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-acts">
+      <div class="acts-header">
+        <button class="icon-btn" id="btn-acts-to-chapters" title="返回章节">←</button>
+        <div class="acts-title-wrap">
+          <div class="acts-chapter-tag" id="acts-chapter-tag">章节</div>
+          <div class="acts-title" id="acts-chapter-title">title</div>
+        </div>
+      </div>
+      <div class="acts-list" id="acts-list"></div>
+      <div class="acts-extras">
+        <button class="back-link" id="btn-acts-replay-intro">重温开场</button>
+        <button class="back-link" id="btn-acts-replay-twist" style="display:none;">重温结局</button>
+      </div>
+    </div>
+
+    <div class="screen" id="screen-puzzle">
+      <div class="top">
+        <div class="top-left">
+          <button class="icon-btn" id="btn-info" title="玩法说明">?</button>
+          <span class="timer" id="timer">00:00</span>
+        </div>
+        <div class="hearts" id="hearts"></div>
+      </div>
+
+      <div class="puzzle-header">
+        <div class="puzzle-chapter" id="puzzle-chapter">章节</div>
+        <div class="puzzle-level" id="puzzle-level">幕</div>
+        <div class="puzzle-size" id="puzzle-size">3 × 3</div>
+      </div>
+
+      <div class="echo" id="echo">深呼吸，慢慢来。</div>
+
+      <div class="grid" id="grid"></div>
+
+      <div class="actions">
+        <button class="action-btn btn-notebook" id="btn-notebook">笔记</button>
+        <button class="action-btn btn-hint" id="btn-hint">提示</button>
+        <button class="action-btn btn-help" id="btn-help">放弃</button>
+      </div>
+
+      <div class="back-bar">
+        <button class="back-link" id="btn-back-acts">← 返回幕选择</button>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="modal-overlay" id="modal-character">
+    <div class="modal">
+      <div class="preview-avatar" id="preview-avatar">👤</div>
+      <div class="preview-name" id="preview-name">Name</div>
+      <div class="preview-prof" id="preview-prof">Role</div>
+      <div class="quote">
+        <span id="quote-text">"……"</span>
+        <div class="quote-attribution" id="quote-attribution">— ?</div>
+      </div>
+      <div class="marked-tag" id="marked-tag" style="display:none;"></div>
+      <div class="modal-buttons">
+        <div class="row" id="mark-row">
+          <button class="modal-btn good" data-mark="good">好人</button>
+          <button class="modal-btn bad" data-mark="bad">卧底</button>
+        </div>
+        <button class="modal-btn secondary" id="btn-clear-mark" style="display:none;">清除标记</button>
+        <button class="modal-btn secondary" data-close>关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-notebook">
+    <div class="modal">
+      <div class="modal-title">笔记</div>
+      <div class="modal-sub" style="font-size: 10px; color: var(--text-dim);">你听过的每一句话</div>
+      <div class="notebook-list" id="notebook-list"></div>
+      <div class="modal-buttons" style="margin-top: 12px;">
+        <button class="modal-btn" data-close>关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-tutorial">
+    <div class="modal">
+      <div class="modal-title">玩法说明</div>
+      <div class="modal-body">
+        · 每章三幕，由简到难。<br/>
+        · 第一幕 9 人，第二幕 16 人，第三幕 20 人。<br/>
+        · 轻触任意卡片，听 TA 说一句话。<br/>
+        · <b style="color:var(--good);">没人会撒谎</b>——但大多数都在说废话。<br/>
+        · 越到后面，线索越绕——可能是<i>"A 说 B 周围有 2 个好人"</i>这种串联推理。<br/>
+        · 标错会扣一颗心。<br/><br/>
+        <span style="color: var(--text-dim); font-size: 11px;">
+          <b>笔记</b>：回顾所有听过的话。<br/>
+          <b>提示</b>：自动揭示一格。<br/>
+          <b>放弃</b>：直接看答案，没关系的。
+        </span>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn" data-close>明白了</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-narrative">
+    <div class="modal">
+      <div class="modal-title" id="narrative-title">·</div>
+      <div class="narrative" id="narrative-body"></div>
+      <div class="modal-buttons" style="margin-top: 16px;">
+        <button class="modal-btn" id="narrative-continue">继续</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-win">
+    <div class="modal">
+      <div class="modal-title" style="color: var(--good);">破案</div>
+      <div class="modal-body" id="win-body" style="text-align:center;"></div>
+      <div class="modal-buttons">
+        <button class="modal-btn good" id="btn-next">继续</button>
+        <button class="modal-btn secondary" id="btn-win-back">返回幕选择</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay" id="modal-lose">
+    <div class="modal">
+      <div class="modal-title">没关系</div>
+      <div class="modal-body" style="text-align:center;">
+        每一次推理都是练习。<br/>
+        要不要再来一遍？
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn" id="btn-retry">再来一次</button>
+        <button class="modal-btn secondary" id="btn-reveal">看看答案</button>
+        <button class="modal-btn secondary" id="btn-lose-back">返回幕选择</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// =============================================================
+// HAPTIC + RIPPLE
+// =============================================================
+function haptic(p) { if (navigator.vibrate) { try { navigator.vibrate(p); } catch (e) {} } }
+function attachRipple(el) {
+  el.addEventListener('pointerdown', (e) => {
+    const rect = el.getBoundingClientRect();
+    const r = document.createElement('span');
+    r.className = 'ripple';
+    r.style.left = (e.clientX - rect.left) + 'px';
+    r.style.top = (e.clientY - rect.top) + 'px';
+    el.appendChild(r);
+    setTimeout(() => r.remove(), 600);
+  });
+}
+
+// =============================================================
+// DIFFICULTY · grid 大小 + 推理深度
+// =============================================================
+const DIFFICULTY = {
+  easy:   { rows: 3, cols: 3, spyMin: 2, spyMax: 3, fluffRate: 0.15, chainRate: 0.00 },
+  normal: { rows: 4, cols: 4, spyMin: 4, spyMax: 6, fluffRate: 0.30, chainRate: 0.25 },
+  hard:   { rows: 5, cols: 4, spyMin: 6, spyMax: 8, fluffRate: 0.40, chainRate: 0.50 },
+};
+
+// =============================================================
+// CHAPTERS · 中文剧情 + first-name 英文 + 链式台词
+// =============================================================
+
+const SHARED_CHAIN = {
+  // generic chained templates used as fallback per theme
+};
+
+const CHAPTERS = {
+
+  // -----------------------------------------------------------
+  // OFFICE HOURS（职场，冷蓝）
+  // -----------------------------------------------------------
+  office: {
+    id: 'office',
+    title: 'Office Hours',
+    subtitle: 'Vex Capital · 有人在出卖客户机密',
+    icon: '💼',
+    color: '#8ec5e8', color2: '#5a9bc7',
+    colorSoft: 'rgba(142, 197, 232, 0.18)',
+    themeClass: 'theme-office',
+    status: 'open',
+
+    cast: [
+      { name: 'Marcus',  role: 'CEO',       icon: '👔' },
+      { name: 'Elena',   role: 'CFO',       icon: '👩‍💼' },
+      { name: 'Rhett',   role: 'CTO',       icon: '💻' },
+      { name: 'Priya',   role: 'Analyst',   icon: '📊' },
+      { name: 'Dan',     role: 'Analyst',   icon: '📈' },
+      { name: 'Sofia',   role: 'Analyst',   icon: '📉' },
+      { name: 'Theo',    role: 'Trader',    icon: '💹' },
+      { name: 'Mira',    role: 'Trader',    icon: '🧮' },
+      { name: 'Owen',    role: 'Legal',     icon: '⚖️' },
+      { name: 'Iris',    role: 'Legal',     icon: '📜' },
+      { name: 'Jonah',   role: 'HR',        icon: '📋' },
+      { name: 'Maya',    role: 'HR',        icon: '🪪' },
+      { name: 'Cal',     role: 'IT',        icon: '🖥️' },
+      { name: 'Nia',     role: 'IT',        icon: '🔌' },
+      { name: 'Quentin', role: 'Intern',    icon: '☕' },
+      { name: 'Ramona',  role: 'Intern',    icon: '📎' },
+      { name: 'Bess',    role: 'Reception', icon: '📞' },
+      { name: 'Hank',    role: 'Cleaner',   icon: '🧹' },
+      { name: 'Vera',    role: 'Investor',  icon: '💰' },
+      { name: 'Lex',     role: 'Investor',  icon: '🏦' },
+    ],
+
+    intro: [
+      { kind: 'text', text: 'Vex Capital，四十八楼。\n周一，8:47。' },
+      { kind: 'text', text: '上周三个客户连夜撤资。\n咖啡机第三次坏了。\n四十八楼，没人惊讶。' },
+      { kind: 'char', who: 'Marcus', quote: '"周五前给我名字。\n不要新闻稿。"' },
+      { kind: 'text', text: '在动手之前，\n你最好先弄清这一层的人——\n谁挨着谁，谁恨着谁。' },
+      { kind: 'pair', a: 'Marcus', b: 'Elena',
+        link: 'CEO ↔ CFO',
+        text: 'Marcus 一手把 Elena 从分析师拉到 C-suite。\n上一次他们公开吵架，\n是周三的电话会议。' },
+      { kind: 'pair', a: 'Theo', b: 'Mira',
+        link: 'Trader 双煞',
+        text: '同期入职，同期升职——\n同期想干掉对方。\n一个的客户去过另一个的桌。' },
+      { kind: 'pair', a: 'Vera', b: 'Lex',
+        link: '两位投资人',
+        text: '今年至少有一个会撤资。\n问题是——谁先动手。' },
+      { kind: 'pair', a: 'Cal', b: 'Nia',
+        link: 'IT · 守门人',
+        text: '门禁记录、Slack 日志、Email 备份——\n这两位都有钥匙。\n问起来，他们都笑得很客气。' },
+      { kind: 'text', text: '二十张面孔。\n你有门禁卡，有客气的耐心。\n这就够了。' },
+    ],
+
+    levels: [
+      {
+        title: '第一幕 · 站立会',
+        prelude: [
+          '九个人能进客户文件夹。Marcus 说从这里查起。',
+          '咖啡端着，笑着问。',
+          '他们的话还没学会绕——第一个会说漏嘴的，就藏在这里。',
+        ],
+        difficulty: 'easy',
+      },
+      {
+        title: '第二幕 · 加班之后',
+        prelude: [
+          '第一个名字已经送上去。Marcus 看了一眼，没说话。',
+          'IT 调出夜班记录——凌晨三点，有人用 Elena 的账号登录系统。',
+          'Elena 那时正在飞往香港的飞机上。',
+          '范围扩大到十六人。',
+        ],
+        difficulty: 'normal',
+      },
+      {
+        title: '第三幕 · 点名',
+        prelude: [
+          '两个名字已经在 Marcus 桌上。他笑了一下——"再确认一遍。"',
+          '周五早上九点。全二十人到齐。',
+          '他们开始互相指认，互相替对方开脱——',
+          '"A 说 B 周围有 2 个干净的"——把这些串起来。',
+        ],
+        difficulty: 'hard',
+      },
+    ],
+
+    twist: [
+      { kind: 'text', text: '你交出最终名单。\n那个内鬼戴上手铐——眼睛低着。' },
+      { kind: 'text', text: 'Marcus 把门轻轻关上。\n倒了两杯水。' },
+      { kind: 'char', who: 'Marcus', quote: '"做得漂亮。\n我没想到——你查得这么干净。"' },
+      { kind: 'char', who: 'Marcus', quote: '"我卖了七年。\n他从来——都只是诱饵。\n他自己最后一年才知道。"' },
+      { kind: 'text', text: '门禁注销提示音。\n电梯门为你开着。' },
+      { kind: 'text', text: '—— 第一章 完 ——' },
+    ],
+
+    theme: {
+      selfClean: [
+        "查我的门禁吧。我整天都钉在工位上，没什么地方可去。",
+        "我没碰过那个文件夹。说真的——我连它在哪都没好奇过。",
+        "我在站立会上。二十个人把眼神放在 PPT 上。我在打哈欠。",
+        "把我划掉。我连辞职的勇气都没有，更别说卖客户。",
+      ],
+      neighborSpy: [
+        "{name} 最近老去打印机那边。打印机在 IT 角落，IT 没人记得他长什么样。",
+        "{name} 昨天的午休去得有点远。回来时鞋上沾着不该有的尘。",
+        "{name} 的 Slack 状态一周都是绿灯。但他人在哪儿，问谁谁都摇头。",
+        "{name} 这周清了两次桌子。再清第三次的时候，桌子可能就没了。",
+      ],
+      neighborGood: [
+        "{name} 跟我在咖啡台。我们在认真讨论咖啡机为什么又坏了。",
+        "{name}？干净。上次项目挂了，他哭得比我妈还伤心。",
+        "{name} 算过自己跳槽的成本。算完之后他再也没提过。",
+        "{name} 上周帮我接了三天电话。这种人不会卖你。",
+      ],
+      rowSpies: [
+        "我这一排里，{n} 个不干净。",
+        "我这一行 {n} 个有问题。我能闻出来。",
+      ],
+      colSpies: [
+        "我这一列，{n} 双脏手。审计悄悄告诉我的。",
+        "我这一列里 {n} 个。我数过，不会错。",
+      ],
+      total: [
+        "内部消息：我们这层一共 {n} 个内鬼。多一个不少一个。",
+        "HR 的红名单上 {n} 个账号。我不该看到的。",
+      ],
+      profAllGood: [
+        "我们 {prof} 是清白的。我担保——虽然我担保也没什么用。",
+        "我们 {prof} 部门没人会做这种事。我们连续两年没年终奖了。",
+      ],
+      profAllBad: [
+        "我们 {prof} 全员都有问题，包括我。包括我。",
+        "{prof} 部门烂透了。我都不想在自己工位上待。",
+      ],
+      profDirAllGood: [
+        "看每个 {prof} 的{dir}邻位——都是好人。我用我那个失败的 OKR 担保。",
+      ],
+      profDirAllBad: [
+        "看每个 {prof} 的{dir}邻位——一个不漏，都有事。",
+      ],
+      specific: [
+        "不要外传：{name} 就是内鬼。我说完就装我没说过。",
+        "记下来：{name} 是干净的。她有一种很笨的诚实。",
+        "{name}？{state}。看他眼睛你就知道。",
+      ],
+      // —— 链式 / 嵌套 ——
+      chainBNeighbors: [
+        "{B} 周围 {total} 个人里，{nGood} 个干净的。我看过座位图。",
+        "{B} 那一片有 {nSpy} 双脏手。审计悄悄给我看的。",
+        "{B} 周围——{nGood} 个清白，剩下的——你自己算。",
+      ],
+      chainTriSum: [
+        "{B}、{C}、跟我——三个里，{n} 双脏手。",
+        "我们三个——{B}、{C}、我自己——{n} 个内鬼。",
+      ],
+      chainSameAsMe: [
+        "{B} 周围的内鬼跟我周围一样多。我们一起入职的。",
+        "我跟 {B} 身边的脏手数——一样。一样。",
+      ],
+      chainMoreThanMe: [
+        "{B} 那一片比我这片烂。比我惨。",
+        "{B} 身边的内鬼比我这边多。这话我不重复。",
+      ],
+      chainLessThanMe: [
+        "我身边比 {B} 那边更不干净。我自己说的，自己受。",
+      ],
+      chainBRow: [
+        "{B} 那一排有 {n} 个内鬼。我数过——三遍。",
+      ],
+      chainBCol: [
+        "{B} 那一列 {n} 个有问题。审计的 Excel 一目了然。",
+      ],
+      fluff: [
+        "我等我的奖金等了两年。两年了。",
+        "我把『再也不加班』写进了 OKR。Marcus 笑得很开心。",
+        "新的浓缩咖啡机你看到了吗？我连原来那台叫什么都不记得。",
+        "我对这家公司唯一的感情是 401k。",
+        "我跟我治疗师讲到 Vex，她让我换治疗师。",
+        "周三 WFH。其实我哪天都 WFH，HR 还不知道。",
+        "今天加班加到我以为是周二了。",
+        "去问我经理。我经理会去问他经理。",
+        "Vex 上次给我加薪是 2019。是 9 美金。",
+        "我妈让我考公。我妈说得对。",
+        "我今天只想等晚饭。我已经知道晚饭是什么了。我还是想等。",
+        "我们这层 Wi-Fi 不稳。象征性的。",
+        "周一啊，能怎么办。",
+        "全员大会是今天还是明天？我希望是从来没有。",
+        "我去过 HR。HR 让我去 IT。IT 让我回工位。",
+      ],
+    },
+  },
+
+  // -----------------------------------------------------------
+  // BLACKWOOD MANOR（悬疑，暖琥珀）
+  // -----------------------------------------------------------
+  manor: {
+    id: 'manor',
+    title: 'Blackwood Manor',
+    subtitle: '老爷暴毙 · 二十位继承人中有人下了毒',
+    icon: '🕯️',
+    color: '#d4a574', color2: '#b97b6a',
+    colorSoft: 'rgba(212, 165, 116, 0.20)',
+    themeClass: 'theme-manor',
+    status: 'open',
+
+    cast: [
+      { name: 'Hadrian',  role: 'Heir',      icon: '🎩' },
+      { name: 'Cordelia', role: 'Widow',     icon: '👩‍🦳' },
+      { name: 'Vincent',  role: 'Son',       icon: '🧔' },
+      { name: 'Adelaide', role: 'Daughter',  icon: '👰' },
+      { name: 'Reginald', role: 'Solicitor', icon: '📜' },
+      { name: 'Mona',     role: 'Physician', icon: '⚕️' },
+      { name: 'Ives',     role: 'Priest',    icon: '⛪' },
+      { name: 'Hollis',   role: 'Governess', icon: '📚' },
+      { name: 'Truss',    role: 'Cook',      icon: '🍲' },
+      { name: 'Bertram',  role: 'Butler',    icon: '🤵' },
+      { name: 'Edith',    role: 'Maid',      icon: '🧹' },
+      { name: 'Tom',      role: 'Groom',     icon: '🐎' },
+      { name: 'Hayes',    role: 'Guest',     icon: '🎖️' },
+      { name: 'Ashby',    role: 'Guest',     icon: '👒' },
+      { name: 'Quill',    role: 'Guest',     icon: '🖋️' },
+      { name: 'Wren',     role: 'Guest',     icon: '🪞' },
+      { name: 'Voss',     role: 'Police',    icon: '🔍' },
+      { name: 'Bray',     role: 'Police',    icon: '👮' },
+      { name: 'Felix',    role: 'Solicitor', icon: '📋' },
+      { name: 'Yves',     role: 'Medium',    icon: '🔮' },
+    ],
+
+    intro: [
+      { kind: 'text', text: 'Blackwood Manor。\n雨下了七天没停。' },
+      { kind: 'text', text: '昨夜，老爷 Octavius\n喝下一杯波特，\n再没醒来。' },
+      { kind: 'char', who: 'Voss', quote: '"中毒。\n这宅子里——有人下了手。"' },
+      { kind: 'text', text: '动手之前，\n你最好先弄清这一家人——\n谁恨谁，谁等谁死。' },
+      { kind: 'pair', a: 'Cordelia', b: 'Hadrian',
+        link: '继母 ↔ 长子',
+        text: '老爷再婚之后，\n这两位见面不超过五次。\n遗嘱里——他们各占一半。' },
+      { kind: 'pair', a: 'Vincent', b: 'Adelaide',
+        link: '亲兄妹',
+        text: '一个被赶出家门。\n一个嫁进了贵族。\n上一次见面，是十年前父亲生日。' },
+      { kind: 'pair', a: 'Yves', b: 'Cordelia',
+        link: 'Medium ↔ Widow',
+        text: 'Cordelia 每周日请她"通灵"。\n老仆人们都听过——\n但没人说得清，通灵的是谁。' },
+      { kind: 'pair', a: 'Reginald', b: 'Felix',
+        link: '父子律师',
+        text: '一人写的遗嘱，一人想推翻。\n他们已经一年不在同一张桌上吃饭。' },
+      { kind: 'pair', a: 'Bertram', b: 'Edith',
+        link: 'Butler ↔ Maid',
+        text: 'Bertram 在这宅子比老爷还久。\nEdith 是去年才进来的——\n而她偏偏认识 Cordelia 娘家的人。' },
+      { kind: 'text', text: '二十张面孔，二十个动机。\n你姓 Blackwood。\n这事，得先由你来过一遍。' },
+    ],
+
+    levels: [
+      {
+        title: '第一幕 · 起居室',
+        prelude: [
+          '九个人留下来喝茶。其他人在花园里——假装哀悼。',
+          'Edith 说话最直。Tom 站在门边。',
+          '先从下人问起——他们的话还很直。',
+        ],
+        difficulty: 'easy',
+      },
+      {
+        title: '第二幕 · 宣读遗嘱',
+        prelude: [
+          '第一个名字浮出来了。但 Adelaide 摇头——"你查错方向了。"',
+          'Reginald 把书房的灯点亮。十六个人围进去。',
+          '遗嘱要宣读了。听谁的脸——比墙上的画褪得还快。',
+        ],
+        difficulty: 'normal',
+      },
+      {
+        title: '第三幕 · 自白',
+        prelude: [
+          '两个名字也对了。但 Cordelia 端着茶杯，看着你笑——',
+          '"第三个，你还没想到。"',
+          '暴风雨。灯火明灭。全二十人聚在大厅。',
+          '他们开始绕——"Hadrian 身边有几位清白""我跟 Cordelia 一样脏"——',
+          '把它们串起来。这是最后一轮。',
+        ],
+        difficulty: 'hard',
+      },
+    ],
+
+    twist: [
+      { kind: 'text', text: '你说出名字。\n探长点头——他也知道。' },
+      { kind: 'text', text: '这时——\n书房的门，开了。' },
+      { kind: 'char', who: 'Voss', quote: '"诸位——\nOctavius 老爷，并未仙逝。"' },
+      { kind: 'text', text: 'Octavius 走了进来。\n干净。微笑。\n手里端着新斟的波特。' },
+      { kind: 'char', who: 'Voss', quote: '"他装的。\n就为了看——谁会先伸手。"' },
+      { kind: 'text', text: '真正的继承人，\n是从头到尾没碰过那只酒瓶的人。\n其他人——一个不留。' },
+      { kind: 'text', text: '—— 第二章 完 ——' },
+    ],
+
+    theme: {
+      selfClean: [
+        "我整晚都在炉边读书。书是《罪与罚》。一个巧合而已。",
+        "我没碰那瓶酒。我喝威士忌——波特是给老人喝的，老爷自己说的。",
+        "我没有动机。老爷把我从遗嘱里删了三次，这次大概是第四次。",
+        "把我划掉吧。我对这一家人，连恨都嫌累。",
+      ],
+      neighborSpy: [
+        "酒瓶端上来时，{name} 就在酒柜旁边。她的手套——后来——是干净的。",
+        "{name} 上礼拜跟老爷大吵了一架。摔了一只茶碗。那茶碗是中国来的。",
+        "老爷亲手斟酒，{name} 没碰。她说她不口渴。十月。",
+        "{name} 晚餐时手在抖。她说是天冷。火炉离她两尺。",
+      ],
+      neighborGood: [
+        "{name} 当时在朗读《圣经》。她念的是《约伯记》——下手的人不会挑这一篇。",
+        "{name} 把老爷当亲生父亲。她每月写信，老爷从来不回。",
+        "{name} 跟我在琴房弹《月光》第三乐章。谋杀犯没有这种耐心。",
+        "{name} 是个老实人。她连撒个小谎都得脸红。",
+      ],
+      rowSpies: [
+        "我这一头桌边，有 {n} 双手不该看的看了。",
+        "我这一排里，{n} 个被遗嘱伤了心。我数过了。",
+      ],
+      colSpies: [
+        "我这一列里，{n} 个人知道保险柜钥匙藏在哪里。包括我。",
+        "{n} 颗黑心。我赌一镑——我还输得起。",
+      ],
+      total: [
+        "探长私下告诉我：动那瓶酒的，一共 {n} 双手。多的那些——只是太晚了。",
+        "Yves 抽了 {n} 张黑牌。她是个骗子，但今晚她碰巧没撒谎。",
+      ],
+      profAllGood: [
+        "我们这宅子的 {prof}，一个都清白。我们也有自己的体面——虽然不多。",
+        "{prof} 们不会动手。我们跟老爷一起活了二十年——他骂我们，我们还回嘴。",
+      ],
+      profAllBad: [
+        "这宅子的 {prof}，一个不少都在里头。我们商量了一晚上。第二晚就动手。",
+        "别信 {prof}。哪一个都别信。我们彼此都不信。",
+      ],
+      profDirAllGood: [
+        "看每个 {prof} 的{dir}邻位。没人动过那瓶酒——我们家这种人没那个胆。",
+      ],
+      profDirAllBad: [
+        "看每个 {prof} 的{dir}邻位。一个不漏，全都做了。我们家这种人就有那个胆。",
+      ],
+      specific: [
+        "我只说一次：是 {name} 干的。说完我就出去抽烟。",
+        "记下我这话——{name} 清白。她爱过老爷，那种爱杀不了人——只能折磨人。",
+        "{name}？{state}。我可以对着教堂发誓——虽然今晚的教堂大概也不听。",
+      ],
+      // —— 链式 / 嵌套 ——
+      chainBNeighbors: [
+        "{B} 身旁的几位——{nGood} 位清白。我留心了一整晚。",
+        "{B} 周围 {total} 个人里，{nSpy} 双手不该动的。",
+        "{B} 那一圈——{nGood} 个无辜。剩下的几位——你自己掂量。",
+      ],
+      chainTriSum: [
+        "{B}、{C}、跟我自己——三个里，{n} 个有罪。",
+        "我们三位——{B}、{C}、我——一共 {n} 颗黑心。",
+      ],
+      chainSameAsMe: [
+        "{B} 身边的，跟我身边的——一样脏。我们坐得近，看得见彼此的手。",
+      ],
+      chainMoreThanMe: [
+        "我身边的，比 {B} 身边的更不堪。",
+        "{B} 那一圈，比我这一圈——脏。",
+      ],
+      chainLessThanMe: [
+        "{B} 身边的，比我这边的——干净些。难得。",
+      ],
+      chainBRow: [
+        "{B} 那一边的桌沿——{n} 个有罪。我可以发誓。",
+      ],
+      chainBCol: [
+        "{B} 这一竖——{n} 颗黑心。我可以背给你听。",
+      ],
+      fluff: [
+        "这老房子风口子真多。穿堂风吹得我想起我母亲。",
+        "我不喜欢波特酒。我也不喜欢这家人。两件事没有关系。",
+        "那群狗吠了一整夜。我想——它们也知道。",
+        "外头一直在下雨。这里一向如此。下雨的好处是，没人能在花园里偷听。",
+        "晚餐时我掉了一颗扣子。第二天早上，扣子在我枕头上。",
+        "你听见钟声了吗？那钟已经坏了三年。",
+        "我的眼镜老滑下来。最近滑得特别勤。",
+        "致以哀悼。对在场所有人——包括我自己。",
+        "请让我缓一缓。我已经缓了三天了——没用。",
+        "这些椅子真难坐。我怀疑是故意的。",
+        "我从来信不过那个园丁。他剪玫瑰时跟它们说话——而它们好像在回答。",
+        "还有茶吗？我需要点烫的，提醒自己——还活着。",
+        "遗产能让人变形。我看着我哥变了两回。",
+        "母亲早警告过我这家人。她说他们都会很有钱，也都会很不幸。她说对了一半。",
+        "对不住。我太累了。最近的累——不是睡眠能解决的。",
+      ],
+    },
+  },
+
+  // -----------------------------------------------------------
+  // THE HEART KNOWS（预告 · 粉）
+  // -----------------------------------------------------------
+  heart: {
+    id: 'heart',
+    title: 'The Heart Knows',
+    subtitle: '校园匿名情书 · 谁写给了谁',
+    icon: '💌',
+    color: '#f4a8c5', color2: '#d97aab',
+    colorSoft: 'rgba(244, 168, 197, 0.20)',
+    themeClass: 'theme-heart',
+    status: 'preview',
+    preview: [
+      { kind: 'text', text: 'Westfield 大学。春季学期。\n第七周。' },
+      { kind: 'text', text: '二十个信箱里，\n出现了二十封匿名情书。' },
+      { kind: 'text', text: '有些是真心，\n有些是赌约，\n有些其实——是别人替写的。' },
+      { kind: 'text', text: '—— 敬请期待 ——' },
+    ],
+  },
+
+  // -----------------------------------------------------------
+  // COURT OF JADE（预告 · 玉金）
+  // -----------------------------------------------------------
+  court: {
+    id: 'court',
+    title: 'Court of Jade',
+    subtitle: '皇后酒中有毒 · 二十张面孔中找那只手',
+    icon: '🏯',
+    color: '#d4b556', color2: '#a8924c',
+    colorSoft: 'rgba(212, 181, 86, 0.20)',
+    themeClass: 'theme-court',
+    status: 'preview',
+    preview: [
+      { kind: 'text', text: '深宫，七月。\n皇后端起酒杯。酒杯落地。' },
+      { kind: 'text', text: '二十位嫔妃。\n二十张笑脸。\n一只手——握过那根银针。' },
+      { kind: 'text', text: '—— 敬请期待 ——' },
+    ],
+  },
+
+  // -----------------------------------------------------------
+  // THRESHOLD（预告 · 紫）
+  // -----------------------------------------------------------
+  threshold: {
+    id: 'threshold',
+    title: 'Threshold',
+    subtitle: '他们之中 · 有人不是活人',
+    icon: '🕯',
+    color: '#b29ee8', color2: '#9080cc',
+    colorSoft: 'rgba(178, 158, 232, 0.20)',
+    themeClass: 'theme-threshold',
+    status: 'preview',
+    preview: [
+      { kind: 'text', text: '老旅馆上礼拜重新开业。\n二十位客人办理了入住。' },
+      { kind: 'text', text: '其中——只有一部分人，\n地上有影子。' },
+      { kind: 'text', text: '—— 敬请期待 ——' },
+    ],
+  },
+};
+
+// =============================================================
+// STATE
+// =============================================================
+const DIRS = [
+  { dx: 0, dy: -1, name: '上方', shortName: '上方' },
+  { dx: 0, dy: 1,  name: '下方', shortName: '下方' },
+  { dx: -1, dy: 0, name: '左侧', shortName: '左' },
+  { dx: 1, dy: 0,  name: '右侧', shortName: '右' },
+];
+
+const state = {
+  screen: 'chapters',
+  currentChapterId: null,
+  currentLevelIdx: 0,
+  // dimensions of current puzzle
+  rows: 5, cols: 4, total: 20,
+  // cinematic
+  cineScenes: [], cineIdx: 0, cineAfter: null,
+  // puzzle
+  cast: [], solution: [], statements: [],
+  marks: [], locked: [], visited: [],
+  hearts: 3, selectedIdx: -1,
+  startTime: 0, elapsed: 0, timerId: null, active: false,
+  progress: {},
+};
+
+// =============================================================
+// HELPERS  (dimension-aware)
+// =============================================================
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function rcToIdx(r, c) { return r * state.cols + c; }
+function idxToRc(i) { return [Math.floor(i / state.cols), i % state.cols]; }
+function neighbor(i, dir) {
+  const [r, c] = idxToRc(i);
+  const nr = r + dir.dy, nc = c + dir.dx;
+  if (nr < 0 || nr >= state.rows || nc < 0 || nc >= state.cols) return -1;
+  return rcToIdx(nr, nc);
+}
+function allNeighbors(i) {
+  const out = [];
+  for (const d of DIRS) {
+    const n = neighbor(i, d);
+    if (n !== -1) out.push(n);
+  }
+  return out;
+}
+function countSpyNeighbors(i, sol) {
+  return allNeighbors(i).filter(n => sol[n]).length;
+}
+function templ(s, r) {
+  let out = s;
+  for (const k in r) out = out.replaceAll('{' + k + '}', r[k]);
+  return out;
+}
+
+// =============================================================
+// THEME / DIMENSION SETUP
+// =============================================================
+function setChapterTheme(ch) {
+  document.body.className.split(/\s+/).filter(c => c.startsWith('theme-')).forEach(c => document.body.classList.remove(c));
+  document.body.classList.add(ch ? ch.themeClass : 'theme-default');
+  if (ch) {
+    document.documentElement.style.setProperty('--ch-color', ch.color);
+    document.documentElement.style.setProperty('--ch-color-2', ch.color2 || ch.color);
+    document.documentElement.style.setProperty('--ch-color-soft', ch.colorSoft);
+  } else {
+    document.documentElement.style.setProperty('--ch-color', 'var(--pink)');
+    document.documentElement.style.setProperty('--ch-color-2', 'var(--blue)');
+    document.documentElement.style.setProperty('--ch-color-soft', 'rgba(244, 168, 197, 0.18)');
+  }
+}
+
+// =============================================================
+// PUZZLE GENERATION
+// =============================================================
+function pickCast(chapterCast, total) {
+  return shuffle(chapterCast).slice(0, total);
+}
+
+function generateSolution(diff) {
+  const range = diff.spyMax - diff.spyMin + 1;
+  const spyCount = diff.spyMin + Math.floor(Math.random() * range);
+  const sol = Array(state.total).fill(false);
+  shuffle([...Array(state.total).keys()]).slice(0, spyCount).forEach(i => sol[i] = true);
+  return sol;
+}
+
+// ------------- DIRECT CLUES (Act 1+) -------------
+function generateDirectClue(i, cast, sol, theme) {
+  const me = cast[i];
+  const options = [];
+  if (!sol[i]) theme.selfClean.forEach(t => options.push(t));
+  for (const dir of DIRS) {
+    const n = neighbor(i, dir);
+    if (n === -1) continue;
+    const pool = sol[n] ? theme.neighborSpy : theme.neighborGood;
+    pool.forEach(t => options.push(templ(t, { name: cast[n].name, dir: dir.shortName })));
+  }
+  const [r, c] = idxToRc(i);
+  let rs = 0;
+  for (let cc = 0; cc < state.cols; cc++) if (sol[rcToIdx(r, cc)]) rs++;
+  theme.rowSpies.forEach(t => options.push(templ(t, { n: rs })));
+  let cs = 0;
+  for (let rr = 0; rr < state.rows; rr++) if (sol[rcToIdx(rr, c)]) cs++;
+  theme.colSpies.forEach(t => options.push(templ(t, { n: cs })));
+  const totalSpies = sol.filter(x => x).length;
+  theme.total.forEach(t => options.push(templ(t, { n: totalSpies })));
+
+  const sameProf = cast.map((rr, idx) => ({ idx, role: rr })).filter(x => x.role.role === me.role);
+  if (sameProf.length >= 2) {
+    const spies = sameProf.filter(x => sol[x.idx]).length;
+    if (spies === 0) theme.profAllGood.forEach(t => options.push(templ(t, { prof: me.role })));
+    if (spies === sameProf.length) theme.profAllBad.forEach(t => options.push(templ(t, { prof: me.role })));
+    for (const dir of DIRS) {
+      const neighbors = sameProf.map(x => neighbor(x.idx, dir));
+      if (neighbors.length < 2 || neighbors.some(n => n === -1)) continue;
+      if (neighbors.every(n => !sol[n])) {
+        theme.profDirAllGood.forEach(t => options.push(templ(t, { prof: me.role, dir: dir.shortName })));
+      } else if (neighbors.every(n => sol[n])) {
+        theme.profDirAllBad.forEach(t => options.push(templ(t, { prof: me.role, dir: dir.shortName })));
+      }
+    }
+  }
+  // specific other
+  const others = []; for (let j = 0; j < state.total; j++) if (j !== i) others.push(j);
+  const j = pick(others);
+  theme.specific.forEach(t => options.push(templ(t, {
+    name: cast[j].name, state: sol[j] ? '卧底' : '好人',
+  })));
+
+  return options.length ? pick(options) : null;
+}
+
+// ------------- CHAINED CLUES (Act 2/3) -------------
+function generateChainedClue(i, cast, sol, theme) {
+  const types = [];
+  if (theme.chainBNeighbors) types.push('bn');
+  if (theme.chainTriSum)     types.push('tri');
+  if (theme.chainSameAsMe)   types.push('same');
+  if (theme.chainMoreThanMe) types.push('more');
+  if (theme.chainLessThanMe) types.push('less');
+  if (theme.chainBRow)       types.push('brow');
+  if (theme.chainBCol)       types.push('bcol');
+  if (types.length === 0) return null;
+
+  // Try a few times — some types need certain conditions
+  for (let attempt = 0; attempt < 8; attempt++) {
+    const type = pick(types);
+
+    if (type === 'bn') {
+      const others = []; for (let j = 0; j < state.total; j++) if (j !== i) others.push(j);
+      const b = pick(others);
+      const ns = allNeighbors(b);
+      if (ns.length < 2) continue;
+      const nSpy = ns.filter(n => sol[n]).length;
+      const nGood = ns.length - nSpy;
+      return templ(pick(theme.chainBNeighbors), {
+        B: cast[b].name, total: ns.length, nSpy, nGood,
+      });
+    }
+
+    if (type === 'tri') {
+      const others = []; for (let j = 0; j < state.total; j++) if (j !== i) others.push(j);
+      const sh = shuffle(others).slice(0, 2);
+      if (sh.length < 2) continue;
+      const trio = [i, sh[0], sh[1]];
+      const n = trio.filter(k => sol[k]).length;
+      return templ(pick(theme.chainTriSum), {
+        B: cast[sh[0]].name, C: cast[sh[1]].name, n,
+      });
+    }
+
+    if (type === 'same' || type === 'more' || type === 'less') {
+      const mine = countSpyNeighbors(i, sol);
+      // find a B with matching condition
+      const candidates = [];
+      for (let j = 0; j < state.total; j++) {
+        if (j === i) continue;
+        if (allNeighbors(j).length === 0) continue;
+        const theirs = countSpyNeighbors(j, sol);
+        if (type === 'same' && theirs === mine) candidates.push(j);
+        if (type === 'more' && mine > theirs) candidates.push(j);
+        if (type === 'less' && mine < theirs) candidates.push(j);
+      }
+      if (!candidates.length) continue;
+      const b = pick(candidates);
+      const pool = type === 'same' ? theme.chainSameAsMe
+                 : type === 'more' ? theme.chainMoreThanMe
+                 : theme.chainLessThanMe;
+      return templ(pick(pool), { B: cast[b].name });
+    }
+
+    if (type === 'brow') {
+      const others = []; for (let j = 0; j < state.total; j++) if (j !== i) others.push(j);
+      const b = pick(others);
+      const [br] = idxToRc(b);
+      let n = 0;
+      for (let cc = 0; cc < state.cols; cc++) if (sol[rcToIdx(br, cc)]) n++;
+      return templ(pick(theme.chainBRow), { B: cast[b].name, n });
+    }
+
+    if (type === 'bcol') {
+      const others = []; for (let j = 0; j < state.total; j++) if (j !== i) others.push(j);
+      const b = pick(others);
+      const [, bc] = idxToRc(b);
+      let n = 0;
+      for (let rr = 0; rr < state.rows; rr++) if (sol[rcToIdx(rr, bc)]) n++;
+      return templ(pick(theme.chainBCol), { B: cast[b].name, n });
+    }
+  }
+  return null;
+}
+
+function generateStatements(cast, sol, theme, diff) {
+  // — anchored generation —
+  // Guarantees that the puzzle is logically constrained:
+  //   · total spy count
+  //   · every row count
+  //   · every column count
+  //   · profession-universal where it holds
+  //   · ~half the innocents publicly attest "I'm clean"
+  // Remaining cells fill with neighbor / specific / chained / fluff
+  // depending on difficulty.
+  const N = state.total;
+  const statements = Array(N).fill(null);
+  const used = new Set();
+
+  const place = (cell, text) => { statements[cell] = text; used.add(cell); };
+  const tryPlace = (candidates, makeText) => {
+    for (const i of shuffle(candidates)) {
+      if (!used.has(i)) { place(i, makeText()); return i; }
+    }
+    return -1;
+  };
+
+  // (1) total
+  const totalSpies = sol.filter(x => x).length;
+  tryPlace([...Array(N).keys()], () => templ(pick(theme.total), { n: totalSpies }));
+
+  // (2) per-row counts
+  for (let r = 0; r < state.rows; r++) {
+    const inRow = []; let cnt = 0;
+    for (let c = 0; c < state.cols; c++) {
+      const idx = rcToIdx(r, c); inRow.push(idx);
+      if (sol[idx]) cnt++;
+    }
+    tryPlace(inRow, () => templ(pick(theme.rowSpies), { n: cnt }));
+  }
+
+  // (3) per-column counts
+  for (let c = 0; c < state.cols; c++) {
+    const inCol = []; let cnt = 0;
+    for (let r = 0; r < state.rows; r++) {
+      const idx = rcToIdx(r, c); inCol.push(idx);
+      if (sol[idx]) cnt++;
+    }
+    tryPlace(inCol, () => templ(pick(theme.colSpies), { n: cnt }));
+  }
+
+  // (4) profession universal where it holds
+  const profGroups = {};
+  cast.forEach((c, i) => { (profGroups[c.role] = profGroups[c.role] || []).push(i); });
+  Object.entries(profGroups).forEach(([prof, idxs]) => {
+    if (idxs.length < 2) return;
+    const spies = idxs.filter(i => sol[i]).length;
+    if (spies === 0) {
+      tryPlace(idxs, () => templ(pick(theme.profAllGood), { prof }));
+    } else if (spies === idxs.length) {
+      tryPlace(idxs, () => templ(pick(theme.profAllBad), { prof }));
+    }
+  });
+
+  // (5) ~half innocents self-attest
+  const freeInnocents = [...Array(N).keys()].filter(i => !sol[i] && !used.has(i));
+  const numSelf = Math.ceil(freeInnocents.length * 0.5);
+  shuffle(freeInnocents).slice(0, numSelf).forEach(i => place(i, pick(theme.selfClean)));
+
+  // (6) fill remaining with difficulty mix
+  for (let i = 0; i < N; i++) {
+    if (statements[i]) continue;
+    const r = Math.random();
+    if (r < diff.fluffRate) {
+      statements[i] = pick(theme.fluff);
+    } else if (diff.chainRate > 0 && Math.random() < diff.chainRate) {
+      statements[i] = generateChainedClue(i, cast, sol, theme) ||
+                      generateDirectClue(i, cast, sol, theme) ||
+                      pick(theme.fluff);
+    } else {
+      statements[i] = generateDirectClue(i, cast, sol, theme) || pick(theme.fluff);
+    }
+  }
+
+  return statements;
+}
+
+// =============================================================
+// SCREEN MGMT
+// =============================================================
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  state.screen = name;
+  window.scrollTo(0, 0);
+}
+
+// =============================================================
+// CHAPTER SELECT
+// =============================================================
+function renderChapterList() {
+  setChapterTheme(null);
+  const list = document.getElementById('chapter-list');
+  list.innerHTML = '';
+  let num = 1;
+  Object.values(CHAPTERS).forEach(ch => {
+    const card = document.createElement('div');
+    card.className = 'chapter-card';
+    card.style.setProperty('--ch-color', ch.color);
+    card.style.setProperty('--ch-color-2', ch.color2 || ch.color);
+    card.style.setProperty('--ch-color-soft', ch.colorSoft);
+    const prog = state.progress[ch.id] || {};
+    const isPreview = ch.status === 'preview';
+    const isFinished = prog.finished;
+    const completed = (prog.completedLevels || []).filter(Boolean).length;
+    const total = ch.levels ? ch.levels.length : 0;
+    const pct = total ? Math.round(completed / total * 100) : 0;
+    if (isPreview) card.classList.add('locked'); else card.classList.add('unlocked');
+    if (isFinished) card.classList.add('complete');
+    card.innerHTML = `
+      <div class="chapter-head">
+        <div class="chapter-icon">${ch.icon}</div>
+        <div class="chapter-meta">
+          <div class="chapter-num">第 ${num} 章</div>
+          <div class="chapter-title">${ch.title}</div>
+          <div class="chapter-sub">${ch.subtitle}</div>
+        </div>
+      </div>
+      <div class="chapter-progress">
+        <span>${isPreview ? '敬请期待' : isFinished ? '本章已完结' : `${completed} / ${total} 幕`}</span>
+        ${!isPreview ? `<div class="progress-bar"><div class="progress-fill" style="width:${pct}%; background:${ch.color};"></div></div>` : ''}
+      </div>
+    `;
+    attachRipple(card);
+    card.addEventListener('click', () => {
+      haptic(12);
+      if (isPreview) playCinematic(ch.preview, ch, () => { showScreen('chapters'); renderChapterList(); });
+      else enterChapter(ch.id);
+    });
+    list.appendChild(card);
+    num++;
+  });
+}
+
+function enterChapter(chId) {
+  const ch = CHAPTERS[chId];
+  setChapterTheme(ch);
+  state.currentChapterId = chId;
+  const prog = state.progress[chId] || {};
+  if (!prog.introSeen) {
+    playCinematic(ch.intro, ch, () => {
+      ensureProgress(chId).introSeen = true;
+      saveProgress();
+      showActList();
+    });
+  } else {
+    showActList();
+  }
+}
+
+function showActList() {
+  const ch = CHAPTERS[state.currentChapterId];
+  setChapterTheme(ch);
+  const prog = state.progress[ch.id] || {};
+  const completed = prog.completedLevels || Array(ch.levels.length).fill(false);
+
+  document.getElementById('acts-chapter-tag').textContent = `第 ${Object.keys(CHAPTERS).indexOf(ch.id) + 1} 章`;
+  document.getElementById('acts-chapter-title').textContent = ch.title;
+
+  const list = document.getElementById('acts-list');
+  list.innerHTML = '';
+
+  ch.levels.forEach((level, idx) => {
+    const done = completed[idx];
+    // Available if Act 0 OR previous done OR this one already done
+    const available = idx === 0 || completed[idx - 1] || done;
+    const isNext = !done && available;
+
+    const card = document.createElement('div');
+    card.className = 'act-card';
+    if (!available) card.classList.add('locked');
+    else card.classList.add('available');
+    if (done) card.classList.add('completed');
+
+    const sizes = { easy: '9 人 · 入门', normal: '16 人 · 中等', hard: '20 人 · 全员' };
+    const diffLabel = sizes[level.difficulty] || '';
+
+    let statusText = '';
+    let statusClass = '';
+    if (done) { statusText = '✓ 已完成'; statusClass = 'completed'; }
+    else if (isNext) { statusText = '当前'; statusClass = 'current'; }
+    else if (!available) { statusText = '未解锁'; statusClass = ''; }
+
+    card.innerHTML = `
+      <div class="act-num">第 ${idx + 1} 幕</div>
+      <div class="act-title">${level.title.replace(/^第.幕\s·\s/, '')}</div>
+      <div class="act-meta">${diffLabel}</div>
+      <div class="act-status ${statusClass}">${statusText}</div>
+    `;
+    attachRipple(card);
+    card.addEventListener('click', () => {
+      if (!available) { haptic(40); showToast('完成前一幕才能解锁。'); return; }
+      haptic(12);
+      state.currentLevelIdx = idx;
+      startLevel();
+    });
+    list.appendChild(card);
+  });
+
+  // Show "重温结局" button if all done
+  const twistBtn = document.getElementById('btn-acts-replay-twist');
+  if (completed.every(Boolean)) twistBtn.style.display = 'inline-block';
+  else twistBtn.style.display = 'none';
+
+  showScreen('acts');
+}
+
+// =============================================================
+// CINEMATIC
+// =============================================================
+function playCinematic(scenes, chapter, onDone) {
+  state.cineScenes = scenes;
+  state.cineIdx = 0;
+  state.cineAfter = onDone;
+  setChapterTheme(chapter);
+  showScreen('cinematic');
+  renderCineFrame();
+}
+function renderCineFrame() {
+  const ch = CHAPTERS[state.currentChapterId] || {};
+  const scene = state.cineScenes[state.cineIdx];
+  if (!scene) {
+    const cb = state.cineAfter; state.cineAfter = null;
+    if (cb) cb();
+    return;
+  }
+  const tag = (state.currentChapterId ? ch.title : 'Whisper Chronicles') || '预告';
+  const content = document.getElementById('cine-content');
+  let html = `<div class="cine-frame"><div class="cine-chapter-tag">${tag}</div>`;
+  if (scene.kind === 'char') {
+    const cast = ch.cast || [];
+    const role = cast.find(c => c.name === scene.who) || { icon: '👤', role: '' };
+    html += `
+      <div class="cine-character">
+        <div class="cine-avatar">${role.icon}</div>
+        <div class="cine-name">${scene.who}</div>
+        <div class="cine-role">${role.role}</div>
+      </div>
+      <div class="cine-quote">${scene.quote.replaceAll('\n', '<br/>')}</div>`;
+  } else {
+    html += `<div class="cine-text">${(scene.text || '').replaceAll('\n', '<br/>')}</div>`;
+  }
+  html += `</div>`;
+  content.innerHTML = html;
+}
+function advanceCine() { haptic(6); state.cineIdx++; renderCineFrame(); }
+function skipCine() { haptic(10); state.cineIdx = state.cineScenes.length; renderCineFrame(); }
+
+// =============================================================
+// PUZZLE LIFECYCLE
+// =============================================================
+function startLevel() {
+  const ch = CHAPTERS[state.currentChapterId];
+  const level = ch.levels[state.currentLevelIdx];
+  const diff = DIFFICULTY[level.difficulty || 'normal'];
+
+  // set dimensions FIRST so all helpers work
+  state.rows = diff.rows;
+  state.cols = diff.cols;
+  state.total = diff.rows * diff.cols;
+
+  openNarrative(level.title, level.prelude, () => {
+    state.cast = pickCast(ch.cast, state.total);
+    state.solution = generateSolution(diff);
+    state.statements = generateStatements(state.cast, state.solution, ch.theme, diff);
+    state.marks = Array(state.total).fill(null);
+    state.locked = Array(state.total).fill(false);
+    state.visited = Array(state.total).fill(false);
+    state.hearts = 3;
+    state.elapsed = 0;
+    state.startTime = Date.now();
+    state.active = true;
+    startTimer();
+    showScreen('puzzle');
+    document.getElementById('puzzle-chapter').textContent = ch.title;
+    document.getElementById('puzzle-level').textContent = level.title;
+    document.getElementById('puzzle-size').textContent = `${state.rows} × ${state.cols} · ${state.total} 人`;
+    setEcho('深呼吸，从任何一张卡开始。');
+    render(level.difficulty);
+  });
+}
+
+function startTimer() {
+  stopTimer();
+  state.timerId = setInterval(() => {
+    state.elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+    el.timer.textContent = formatTime(state.elapsed);
+  }, 1000);
+}
+function stopTimer() { if (state.timerId) { clearInterval(state.timerId); state.timerId = null; } }
+function formatTime(s) {
+  const m = Math.floor(s / 60), ss = s % 60;
+  return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+
+// =============================================================
+// RENDER
+// =============================================================
+const el = {
+  grid: document.getElementById('grid'),
+  hearts: document.getElementById('hearts'),
+  timer: document.getElementById('timer'),
+  echo: document.getElementById('echo'),
+  notebookList: document.getElementById('notebook-list'),
+  previewAvatar: document.getElementById('preview-avatar'),
+  previewName: document.getElementById('preview-name'),
+  previewProf: document.getElementById('preview-prof'),
+  quoteText: document.getElementById('quote-text'),
+  quoteAttribution: document.getElementById('quote-attribution'),
+  markedTag: document.getElementById('marked-tag'),
+  clearMarkBtn: document.getElementById('btn-clear-mark'),
+  markRow: document.getElementById('mark-row'),
+  toast: document.getElementById('toast'),
+  winBody: document.getElementById('win-body'),
+  narrativeTitle: document.getElementById('narrative-title'),
+  narrativeBody: document.getElementById('narrative-body'),
+};
+
+function render(difficulty) {
+  el.hearts.innerHTML = '';
+  for (let i = 0; i < 3; i++) {
+    const h = document.createElement('span');
+    h.className = 'heart' + (i >= state.hearts ? ' lost' : '');
+    h.textContent = '♥';
+    el.hearts.appendChild(h);
+  }
+
+  // apply grid columns + size class
+  el.grid.style.gridTemplateColumns = `repeat(${state.cols}, 1fr)`;
+  el.grid.className = 'grid';
+  if (difficulty) el.grid.classList.add('size-' + difficulty);
+
+  el.grid.innerHTML = '';
+  state.cast.forEach((role, i) => {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    if (state.visited[i] && !state.marks[i]) cell.classList.add('visited');
+    if (state.marks[i] === 'good') cell.classList.add('marked-good');
+    if (state.marks[i] === 'bad') cell.classList.add('marked-bad');
+    if (state.locked[i]) cell.classList.add('locked');
+    cell.innerHTML = `
+      ${state.visited[i] && !state.marks[i] ? '<div class="visited-dot"></div>' : ''}
+      ${state.marks[i] ? `<div class="mark-badge ${state.marks[i] === 'good' ? 'good' : 'bad'}">${state.marks[i] === 'good' ? '✓' : '!'}</div>` : ''}
+      <div class="avatar">${role.icon}</div>
+      <div class="cell-info">
+        <div class="name">${role.name}</div>
+        <div class="prof">${role.role}</div>
+      </div>
+    `;
+    attachRipple(cell);
+    cell.addEventListener('click', () => { haptic(8); openCharacter(i); });
+    el.grid.appendChild(cell);
+  });
+  el.timer.textContent = formatTime(state.elapsed);
+}
+
+function renderNotebook() {
+  const visited = state.cast.map((r, i) => ({ r, i })).filter(x => state.visited[x.i]);
+  if (visited.length === 0) {
+    el.notebookList.innerHTML = '<div class="empty-state">点开一张卡，开始收集低语。</div>';
+    return;
+  }
+  el.notebookList.innerHTML = '';
+  visited.forEach(({ r, i }) => {
+    const item = document.createElement('div');
+    item.className = 'note-item';
+    if (state.marks[i] === 'good') item.classList.add('marked-good');
+    if (state.marks[i] === 'bad') item.classList.add('marked-bad');
+    const markText = state.marks[i] === 'good' ? ' · 已标记好人'
+                   : state.marks[i] === 'bad'  ? ' · 已标记卧底' : '';
+    item.innerHTML = `
+      <div class="note-who">${r.icon} ${r.name} <span style="color:var(--text-dim);">· ${r.role}${markText}</span></div>
+      <div class="note-quote">"${state.statements[i]}"</div>
+    `;
+    item.addEventListener('click', () => { haptic(6); closeModal('modal-notebook'); openCharacter(i); });
+    el.notebookList.appendChild(item);
+  });
+}
+
+function setEcho(text) {
+  el.echo.style.opacity = 0;
+  setTimeout(() => { el.echo.textContent = text; el.echo.style.opacity = 1; }, 150);
+}
+
+function showToast(msg) {
+  el.toast.textContent = msg;
+  el.toast.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => el.toast.classList.remove('show'), 1800);
+}
+
+// =============================================================
+// INTERACTIONS
+// =============================================================
+function openCharacter(i) {
+  state.selectedIdx = i;
+  state.visited[i] = true;
+  const role = state.cast[i];
+  el.previewAvatar.textContent = role.icon;
+  el.previewName.textContent = role.name;
+  el.previewProf.textContent = role.role;
+  el.quoteText.textContent = `"${state.statements[i]}"`;
+  el.quoteAttribution.textContent = `— ${role.name} · ${role.role}`;
+  if (state.locked[i]) {
+    const truth = state.solution[i] ? '卧底' : '好人';
+    el.markedTag.style.display = 'block';
+    el.markedTag.className = 'marked-tag ' + (state.solution[i] ? 'bad' : 'good');
+    el.markedTag.textContent = `已确认 · ${truth}`;
+    el.markRow.style.display = 'none';
+    el.clearMarkBtn.style.display = 'none';
+  } else if (state.marks[i]) {
+    el.markedTag.style.display = 'block';
+    el.markedTag.className = 'marked-tag ' + (state.marks[i] === 'good' ? 'good' : 'bad');
+    el.markedTag.textContent = `当前标记 · ${state.marks[i] === 'good' ? '好人' : '卧底'}`;
+    el.markRow.style.display = 'flex';
+    el.clearMarkBtn.style.display = 'block';
+  } else {
+    el.markedTag.style.display = 'none';
+    el.markRow.style.display = 'flex';
+    el.clearMarkBtn.style.display = 'none';
+  }
+  openModal('modal-character');
+  render(CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty);
+}
+
+function applyMark(mark) {
+  const i = state.selectedIdx;
+  if (i < 0 || !state.active) return;
+  const truth = state.solution[i];
+  const guess = (mark === 'bad');
+  const diff = CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty;
+  if (guess === truth) {
+    haptic([15, 40, 15]);
+    state.marks[i] = mark;
+    state.locked[i] = true;
+    closeModal('modal-character');
+    setEcho(`${state.cast[i].name} 已确认 · ${truth ? '卧底' : '好人'}`);
+    render(diff);
+    checkWin();
+  } else {
+    haptic([40, 30, 60]);
+    state.marks[i] = mark;
+    state.hearts -= 1;
+    closeModal('modal-character');
+    shakeCell(i);
+    shakeHeart();
+    if (state.hearts > 0) {
+      setEcho(`猜错了，还有 ${state.hearts} 颗心。`);
+      setTimeout(() => {
+        if (!state.locked[i]) { state.marks[i] = null; render(diff); }
+      }, 700);
+    } else setEcho('心都用光了。');
+    render(diff);
+    if (state.hearts <= 0) lose();
+  }
+}
+
+function clearMark() {
+  const i = state.selectedIdx;
+  if (i < 0) return;
+  if (state.locked[i]) { showToast('已经确认，无法更改。'); return; }
+  state.marks[i] = null;
+  closeModal('modal-character');
+  const diff = CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty;
+  render(diff);
+}
+
+function shakeCell(i) {
+  const cell = el.grid.children[i];
+  if (!cell) return;
+  cell.classList.add('shake');
+  setTimeout(() => cell.classList.remove('shake'), 400);
+}
+function shakeHeart() {
+  const lost = el.hearts.querySelectorAll('.heart:not(.lost)');
+  if (lost.length === 0) return;
+  const last = lost[lost.length - 1];
+  last.classList.add('shake');
+  setTimeout(() => last.classList.remove('shake'), 500);
+}
+
+function checkWin() {
+  for (let i = 0; i < state.total; i++) if (!state.locked[i]) return;
+  win();
+}
+
+function win() {
+  stopTimer();
+  state.active = false;
+  haptic([20, 50, 20, 50, 80]);
+  const ch = CHAPTERS[state.currentChapterId];
+  const prog = ensureProgress(ch.id);
+  if (!prog.completedLevels) prog.completedLevels = Array(ch.levels.length).fill(false);
+  prog.completedLevels[state.currentLevelIdx] = true;
+  const allDone = prog.completedLevels.every(Boolean);
+  saveProgress();
+  el.winBody.innerHTML = `
+    用时 · <span style="color:var(--gold);">${formatTime(state.elapsed)}</span><br/>
+    剩余生命 · ${'♥'.repeat(state.hearts)}<br/>
+    ${allDone ? '<br/>本章已完结。' : ''}
+  `;
+  document.getElementById('btn-next').textContent = allDone ? '看结局' : '下一幕';
+  setTimeout(() => openModal('modal-win'), 350);
+}
+
+function lose() {
+  stopTimer();
+  state.active = false;
+  setTimeout(() => openModal('modal-lose'), 300);
+}
+
+function continueAfterWin() {
+  closeModal('modal-win');
+  const ch = CHAPTERS[state.currentChapterId];
+  const prog = ensureProgress(ch.id);
+  if (prog.completedLevels.every(Boolean)) {
+    // play twist, then return to acts list (chapter finished but still browsable)
+    playCinematic(ch.twist, ch, () => {
+      prog.finished = true; saveProgress();
+      showActList();
+    });
+  } else {
+    // jump to the next unsolved level
+    state.currentLevelIdx = prog.completedLevels.findIndex(x => !x);
+    startLevel();
+  }
+}
+
+function retryLevel() { closeModal('modal-lose'); startLevel(); }
+function revealAndBack() {
+  state.cast.forEach((_, i) => {
+    state.marks[i] = state.solution[i] ? 'bad' : 'good';
+    state.locked[i] = true;
+  });
+  const diff = CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty;
+  render(diff);
+  closeModal('modal-lose');
+  setEcho('答案显示了，慢慢看。');
+}
+
+// =============================================================
+// HINT / HELP
+// =============================================================
+function useHint() {
+  if (!state.active) return;
+  haptic(20);
+  const candidates = [];
+  for (let i = 0; i < state.total; i++) if (!state.locked[i]) candidates.push(i);
+  if (!candidates.length) { showToast('已经全部确认。'); return; }
+  const i = pick(candidates);
+  state.marks[i] = state.solution[i] ? 'bad' : 'good';
+  state.locked[i] = true;
+  const diff = CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty;
+  render(diff);
+  setEcho(`提示 · ${state.cast[i].name} 是${state.solution[i] ? '卧底' : '好人'}`);
+  checkWin();
+}
+function useHelp() {
+  if (!state.active) return;
+  if (confirm('要显示完整答案吗？这一幕不会计入通关，但你仍可以继续本章。')) {
+    state.cast.forEach((_, i) => {
+      state.marks[i] = state.solution[i] ? 'bad' : 'good';
+      state.locked[i] = true;
+    });
+    stopTimer();
+    state.active = false;
+    const diff = CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty;
+    render(diff);
+    setEcho('答案显示了。准备好就开下一幕。');
+  }
+}
+
+// =============================================================
+// NARRATIVE
+// =============================================================
+function openNarrative(title, paragraphs, onContinue) {
+  el.narrativeTitle.textContent = title;
+  el.narrativeBody.innerHTML = paragraphs.map(p => `<p class="narrative-p">${p}</p>`).join('');
+  const btn = document.getElementById('narrative-continue');
+  btn.onclick = () => { haptic(10); closeModal('modal-narrative'); if (onContinue) onContinue(); };
+  openModal('modal-narrative');
+}
+
+// =============================================================
+// MODALS
+// =============================================================
+function openModal(id) { document.getElementById(id).classList.add('show'); }
+function closeModal(id) { document.getElementById(id).classList.remove('show'); }
+document.querySelectorAll('[data-close]').forEach(b => {
+  b.addEventListener('click', () => {
+    haptic(6);
+    const o = b.closest('.modal-overlay');
+    if (o) o.classList.remove('show');
+  });
+});
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', (e) => {
+    if (e.target === o && o.id !== 'modal-narrative') o.classList.remove('show');
+  });
+});
+
+// =============================================================
+// PROGRESS
+// =============================================================
+function ensureProgress(chId) {
+  if (!state.progress[chId]) state.progress[chId] = {};
+  return state.progress[chId];
+}
+function saveProgress() {
+  try { localStorage.setItem('whisper-chronicles', JSON.stringify(state.progress)); } catch (e) {}
+}
+function loadProgress() {
+  try {
+    const raw = localStorage.getItem('whisper-chronicles');
+    if (raw) state.progress = JSON.parse(raw);
+  } catch (e) {}
+}
+
+// =============================================================
+// WIRE UP
+// =============================================================
+['btn-info', 'btn-notebook', 'btn-hint', 'btn-help'].forEach(id => {
+  const b = document.getElementById(id);
+  if (b) attachRipple(b);
+});
+document.querySelectorAll('.modal-btn').forEach(b => attachRipple(b));
+
+document.getElementById('btn-info').addEventListener('click', () => { haptic(6); openModal('modal-tutorial'); });
+document.getElementById('btn-notebook').addEventListener('click', () => { haptic(8); renderNotebook(); openModal('modal-notebook'); });
+document.getElementById('btn-hint').addEventListener('click', useHint);
+document.getElementById('btn-help').addEventListener('click', useHelp);
+document.querySelectorAll('[data-mark]').forEach(b => {
+  b.addEventListener('click', () => applyMark(b.dataset.mark));
+});
+document.getElementById('btn-clear-mark').addEventListener('click', clearMark);
+document.getElementById('btn-next').addEventListener('click', continueAfterWin);
+document.getElementById('btn-retry').addEventListener('click', retryLevel);
+document.getElementById('btn-reveal').addEventListener('click', revealAndBack);
+document.getElementById('btn-lose-back').addEventListener('click', () => {
+  closeModal('modal-lose'); stopTimer(); state.active = false;
+  showActList();
+});
+document.getElementById('btn-win-back').addEventListener('click', () => {
+  closeModal('modal-win'); stopTimer(); state.active = false;
+  showActList();
+});
+document.getElementById('btn-back-acts').addEventListener('click', () => {
+  haptic(8); stopTimer(); state.active = false;
+  showActList();
+});
+document.getElementById('btn-acts-to-chapters').addEventListener('click', () => {
+  haptic(8);
+  showScreen('chapters'); renderChapterList();
+});
+document.getElementById('btn-acts-replay-intro').addEventListener('click', () => {
+  haptic(8);
+  const ch = CHAPTERS[state.currentChapterId];
+  playCinematic(ch.intro, ch, () => showActList());
+});
+document.getElementById('btn-acts-replay-twist').addEventListener('click', () => {
+  haptic(8);
+  const ch = CHAPTERS[state.currentChapterId];
+  playCinematic(ch.twist, ch, () => showActList());
+});
+document.getElementById('cinematic-stage').addEventListener('click', (e) => {
+  if (e.target.id === 'cine-skip') return;
+  advanceCine();
+});
+document.getElementById('cine-skip').addEventListener('click', skipCine);
+document.getElementById('btn-reset-all').addEventListener('click', () => {
+  if (confirm('清除所有章节进度？无法撤销。')) {
+    state.progress = {}; saveProgress(); renderChapterList(); showToast('进度已清除。');
+  }
+});
+
+// =============================================================
+// BOOT
+// =============================================================
+loadProgress();
+renderChapterList();
+showScreen('chapters');
+</script>
+</body>
+</html>

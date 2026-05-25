@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#f5f0e8">
+<title>解压小屋</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+  html, body { width: 100%; height: 100%; overflow: hidden; touch-action: none; overscroll-behavior: none; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f0e8;
+  }
+
+  #app { width: 100%; height: 100%; position: relative; }
+
+  .scene {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    bottom: calc(64px + env(safe-area-inset-bottom));
+    display: none;
+    overflow: hidden;
+  }
+  .scene.active { display: block; }
+
+  /* ===== Tab bar ===== */
+  #tabs {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: calc(64px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: white;
+    display: flex;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.06);
+    z-index: 10;
+  }
+  .tab {
+    flex: 1;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: #aaa; font-size: 11px;
+    gap: 2px; cursor: pointer;
+    transition: color 0.2s, transform 0.1s;
+  }
+  .tab .icon { font-size: 26px; line-height: 1; }
+  .tab.active { color: #ff7eb3; }
+  .tab:active { transform: scale(0.92); }
+
+  /* ===== Hint ===== */
+  .hint {
+    position: absolute;
+    top: max(20px, env(safe-area-inset-top, 20px));
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255,255,255,0.9);
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 13px;
+    color: #666;
+    pointer-events: none;
+    opacity: 0;
+    z-index: 5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    white-space: nowrap;
+  }
+  .scene.active .hint { animation: fade-hint 4.5s forwards; }
+  @keyframes fade-hint {
+    0% { opacity: 0; transform: translate(-50%, -8px); }
+    15%, 75% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, -8px); }
+  }
+
+  /* ===== Bubble Wrap ===== */
+  #bubble-scene {
+    background: linear-gradient(135deg, #ffeef5 0%, #ffe5ec 100%);
+  }
+  #bubble-grid {
+    width: 100%; height: 100%;
+    display: grid;
+    gap: 6px;
+    padding: 14px;
+  }
+  .bubble {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.3) 18%, transparent 35%),
+      radial-gradient(circle at 65% 70%, rgba(255,126,179,0.5), rgba(255,182,210,0.7));
+    box-shadow:
+      inset -3px -4px 10px rgba(199,79,127,0.35),
+      inset 2px 2px 4px rgba(255,255,255,0.6),
+      0 2px 5px rgba(199,79,127,0.15);
+    cursor: pointer;
+    transition: transform 0.06s;
+  }
+  .bubble:active { transform: scale(0.9); }
+  .bubble.popped {
+    background:
+      radial-gradient(circle, rgba(255,182,210,0.15), transparent 65%);
+    box-shadow: inset 1px 1px 3px rgba(199,79,127,0.15);
+    pointer-events: none;
+    animation: bubble-pop 0.4s forwards;
+  }
+  @keyframes bubble-pop {
+    0%   { transform: scale(1.18); }
+    35%  { transform: scale(0.82); }
+    70%  { transform: scale(1.02); }
+    100% { transform: scale(0.94); }
+  }
+
+  /* ===== Slime ===== */
+  #slime-scene {
+    background: linear-gradient(180deg, #fff5f0 0%, #ffe8db 100%);
+    display: flex; flex-direction: column;
+  }
+  #slime-canvas {
+    flex: 1;
+    width: 100%;
+    display: block;
+  }
+  #slime-colors {
+    display: flex; gap: 10px;
+    justify-content: center;
+    padding: 14px 12px 18px;
+  }
+  .color-dot {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid rgba(255,255,255,0.7);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .color-dot.active {
+    border-color: #444;
+    transform: scale(1.15);
+  }
+  .color-dot:active { transform: scale(0.95); }
+
+  /* ===== Monsters (挤痘痘 卡通版) ===== */
+  #pimple-scene {
+    background:
+      radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.4), transparent 50%),
+      linear-gradient(180deg, #b8e3c7 0%, #88c8a3 100%);
+  }
+  .monster {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    will-change: transform;
+  }
+  .monster .body {
+    width: 100%; height: 100%;
+    border-radius: 50% 50% 45% 45%;
+    position: relative;
+    box-shadow:
+      inset -5px -8px 14px rgba(0,0,0,0.18),
+      inset 4px 5px 8px rgba(255,255,255,0.35),
+      0 5px 10px rgba(0,0,0,0.18);
+    animation: wobble 2.2s ease-in-out infinite;
+  }
+  @keyframes wobble {
+    0%, 100% { transform: scale(1, 1); }
+    50%      { transform: scale(1.06, 0.94); }
+  }
+  .monster .face {
+    position: absolute;
+    top: 36%; left: 0; right: 0;
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .monster .eyes { display: flex; gap: 9px; }
+  .monster .eye {
+    width: 9px; height: 11px;
+    background: #2a1a1a;
+    border-radius: 50%;
+    position: relative;
+  }
+  .monster .eye::after {
+    content: '';
+    position: absolute;
+    top: 1.5px; left: 2px;
+    width: 3px; height: 3px;
+    background: white;
+    border-radius: 50%;
+  }
+  .monster .mouth {
+    width: 10px; height: 5px;
+    border: 1.8px solid #2a1a1a;
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+  }
+  .monster.popping { animation: monster-pop 0.35s forwards; }
+  @keyframes monster-pop {
+    0%   { transform: translate(-50%, -50%) scale(1, 1); }
+    25%  { transform: translate(-50%, -50%) scale(1.35, 0.65); }
+    60%  { transform: translate(-50%, -50%) scale(0.4, 1.3); }
+    100% { transform: translate(-50%, -50%) scale(0, 0); opacity: 0; }
+  }
+  .splat {
+    position: absolute;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Bubble Wrap -->
+  <div class="scene active" id="bubble-scene">
+    <div class="hint">戳爆每一颗泡泡 🫧</div>
+    <div id="bubble-grid"></div>
+  </div>
+
+  <!-- Slime -->
+  <div class="scene" id="slime-scene">
+    <div class="hint">拖动它、戳它，换颜色 🍮</div>
+    <canvas id="slime-canvas"></canvas>
+    <div id="slime-colors"></div>
+  </div>
+
+  <!-- Monsters -->
+  <div class="scene" id="pimple-scene">
+    <div class="hint">点击小怪兽，把它捏爆 👾</div>
+  </div>
+
+  <div id="tabs">
+    <div class="tab active" data-scene="bubble-scene">
+      <div class="icon">🫧</div>
+      <div>气泡</div>
+    </div>
+    <div class="tab" data-scene="slime-scene">
+      <div class="icon">🍮</div>
+      <div>史莱姆</div>
+    </div>
+    <div class="tab" data-scene="pimple-scene">
+      <div class="icon">🦠</div>
+      <div>小怪兽</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ============== Audio (Web Audio API, no external assets) ==============
+let audioCtx;
+function ensureAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+function playPop(pitch) {
+  ensureAudio();
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const f0 = pitch || (500 + Math.random() * 400);
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(f0 * 1.6, t);
+  osc.frequency.exponentialRampToValueAtTime(f0 * 0.4, t + 0.09);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.32, t + 0.006);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + 0.16);
+
+  // Brief noise burst for "pop"
+  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.04, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buf;
+  const ngain = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 1400;
+  filter.Q.value = 4;
+  ngain.gain.setValueAtTime(0.12, t);
+  ngain.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
+  noise.connect(filter); filter.connect(ngain); ngain.connect(audioCtx.destination);
+  noise.start(t);
+}
+function playSquish() {
+  ensureAudio();
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(220, t);
+  osc.frequency.exponentialRampToValueAtTime(90, t + 0.18);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.18, t + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+  osc.connect(gain); gain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + 0.25);
+}
+function vibrate(ms) {
+  if (navigator.vibrate) {
+    try { navigator.vibrate(ms || 8); } catch (e) {}
+  }
+}
+
+// ============== Tab switching ==============
+const tabs = document.querySelectorAll('.tab');
+const scenes = document.querySelectorAll('.scene');
+let activeScene = 'bubble-scene';
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => {
+    const target = tab.dataset.scene;
+    if (target === activeScene) return;
+    activeScene = target;
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.scene === target));
+    scenes.forEach(s => s.classList.toggle('active', s.id === target));
+    ensureAudio();
+    if (target === 'slime-scene') resizeSlime();
+    if (target === 'pimple-scene' && monsters.length === 0) initMonsters();
+  });
+});
+
+// ============== 1) Bubble Wrap ==============
+const bubbleGrid = document.getElementById('bubble-grid');
+
+function buildBubbles() {
+  const sceneEl = document.getElementById('bubble-scene');
+  const w = sceneEl.clientWidth - 28;
+  const h = sceneEl.clientHeight - 28;
+  // Aim for ~48px bubbles
+  const cols = Math.max(6, Math.round(w / 50));
+  const cellW = (w - (cols - 1) * 6) / cols;
+  const rows = Math.max(8, Math.floor((h + 6) / (cellW + 6)));
+  bubbleGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  bubbleGrid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+  bubbleGrid.innerHTML = '';
+  for (let i = 0; i < cols * rows; i++) {
+    const b = document.createElement('div');
+    b.className = 'bubble';
+    bubbleGrid.appendChild(b);
+  }
+}
+
+let lastPopAt = 0;
+bubbleGrid.addEventListener('pointerdown', (e) => {
+  const t = e.target;
+  if (t.classList.contains('bubble') && !t.classList.contains('popped')) {
+    t.classList.add('popped');
+    // Slight pitch ramp to feel musical when popping fast
+    const now = performance.now();
+    const fast = (now - lastPopAt) < 250;
+    lastPopAt = now;
+    playPop(450 + Math.random() * 350 + (fast ? 100 : 0));
+    vibrate(10);
+
+    // Auto-refill when all popped
+    if (bubbleGrid.querySelectorAll('.bubble:not(.popped)').length === 0) {
+      setTimeout(() => {
+        bubbleGrid.querySelectorAll('.bubble').forEach(b => b.classList.remove('popped'));
+      }, 700);
+    }
+  }
+});
+// Allow dragging across bubbles to pop in a stroke
+bubbleGrid.addEventListener('pointermove', (e) => {
+  if (e.pressure === 0 && e.buttons === 0) return;
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  if (el && el.classList.contains('bubble') && !el.classList.contains('popped')) {
+    el.classList.add('popped');
+    playPop(500 + Math.random() * 350);
+    vibrate(8);
+    if (bubbleGrid.querySelectorAll('.bubble:not(.popped)').length === 0) {
+      setTimeout(() => {
+        bubbleGrid.querySelectorAll('.bubble').forEach(b => b.classList.remove('popped'));
+      }, 700);
+    }
+  }
+});
+
+// ============== 2) Slime ==============
+const slimeCanvas = document.getElementById('slime-canvas');
+const sctx = slimeCanvas.getContext('2d');
+const slimeColors = ['#a8e6cf', '#ffb6c1', '#b5d4f5', '#ffe066', '#d4a5e8', '#ffa07a'];
+let slimeColor = slimeColors[0];
+
+const colorBar = document.getElementById('slime-colors');
+slimeColors.forEach((c, i) => {
+  const d = document.createElement('div');
+  d.className = 'color-dot' + (i === 0 ? ' active' : '');
+  d.style.background = c;
+  d.addEventListener('click', () => {
+    slimeColor = c;
+    document.querySelectorAll('.color-dot').forEach(el => el.classList.toggle('active', el === d));
+  });
+  colorBar.appendChild(d);
+});
+
+const NUM_POINTS = 40;
+let slimePoints = [];
+let slimeCenter = { x: 0, y: 0, vx: 0, vy: 0 };
+let slimeRadius = 100;
+
+function initSlime() {
+  slimePoints = [];
+  for (let i = 0; i < NUM_POINTS; i++) {
+    const a = (i / NUM_POINTS) * Math.PI * 2;
+    slimePoints.push({
+      a,
+      x: slimeCenter.x + Math.cos(a) * slimeRadius,
+      y: slimeCenter.y + Math.sin(a) * slimeRadius,
+      vx: 0, vy: 0,
+    });
+  }
+}
+
+function resizeSlime() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = slimeCanvas.clientWidth;
+  const h = slimeCanvas.clientHeight;
+  if (w === 0 || h === 0) return;
+  slimeCanvas.width = w * dpr;
+  slimeCanvas.height = h * dpr;
+  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  slimeCenter.x = w / 2;
+  slimeCenter.y = h / 2;
+  slimeCenter.vx = 0; slimeCenter.vy = 0;
+  slimeRadius = Math.min(w, h) * 0.27;
+  initSlime();
+}
+
+let pointer = { x: 0, y: 0, active: false, grabbed: false, ox: 0, oy: 0 };
+function pointerPos(e) {
+  const r = slimeCanvas.getBoundingClientRect();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+slimeCanvas.addEventListener('pointerdown', (e) => {
+  ensureAudio();
+  const p = pointerPos(e);
+  pointer.x = p.x; pointer.y = p.y; pointer.active = true;
+  const dx = p.x - slimeCenter.x;
+  const dy = p.y - slimeCenter.y;
+  if (dx*dx + dy*dy < slimeRadius * slimeRadius * 1.1) {
+    pointer.grabbed = true;
+    pointer.ox = slimeCenter.x - p.x;
+    pointer.oy = slimeCenter.y - p.y;
+  }
+  playSquish();
+  vibrate(5);
+});
+slimeCanvas.addEventListener('pointermove', (e) => {
+  if (!pointer.active) return;
+  const p = pointerPos(e);
+  pointer.x = p.x; pointer.y = p.y;
+});
+function endPointer() { pointer.active = false; pointer.grabbed = false; }
+slimeCanvas.addEventListener('pointerup', endPointer);
+slimeCanvas.addEventListener('pointercancel', endPointer);
+slimeCanvas.addEventListener('pointerleave', endPointer);
+
+function updateSlime() {
+  const w = slimeCanvas.clientWidth;
+  const h = slimeCanvas.clientHeight;
+
+  // Move slime center if grabbed (with lag for jiggle)
+  if (pointer.grabbed) {
+    const targetX = pointer.x + pointer.ox;
+    const targetY = pointer.y + pointer.oy;
+    slimeCenter.vx += (targetX - slimeCenter.x) * 0.18;
+    slimeCenter.vy += (targetY - slimeCenter.y) * 0.18;
+  }
+  slimeCenter.vx *= 0.82;
+  slimeCenter.vy *= 0.82;
+  slimeCenter.x += slimeCenter.vx;
+  slimeCenter.y += slimeCenter.vy;
+  // Soft bounds
+  const m = slimeRadius * 0.7;
+  if (slimeCenter.x < m) { slimeCenter.x = m; slimeCenter.vx *= -0.4; }
+  if (slimeCenter.x > w - m) { slimeCenter.x = w - m; slimeCenter.vx *= -0.4; }
+  if (slimeCenter.y < m) { slimeCenter.y = m; slimeCenter.vy *= -0.4; }
+  if (slimeCenter.y > h - m) { slimeCenter.y = h - m; slimeCenter.vy *= -0.4; }
+
+  const stiffness = 0.045;
+  const damping = 0.86;
+
+  for (const p of slimePoints) {
+    const restX = slimeCenter.x + Math.cos(p.a) * slimeRadius;
+    const restY = slimeCenter.y + Math.sin(p.a) * slimeRadius;
+    p.vx += (restX - p.x) * stiffness;
+    p.vy += (restY - p.y) * stiffness;
+
+    // Pointer push (only when active but not grabbed centrally — gives "poke" deform)
+    if (pointer.active && !pointer.grabbed) {
+      const dx = p.x - pointer.x;
+      const dy = p.y - pointer.y;
+      const dist = Math.sqrt(dx*dx + dy*dy) || 0.001;
+      const range = slimeRadius * 1.3;
+      if (dist < range) {
+        const force = (1 - dist / range) * 7;
+        p.vx += (dx / dist) * force;
+        p.vy += (dy / dist) * force;
+      }
+    }
+    p.vx *= damping;
+    p.vy *= damping;
+    p.x += p.vx;
+    p.y += p.vy;
+  }
+}
+
+function drawSlime() {
+  const w = slimeCanvas.clientWidth;
+  const h = slimeCanvas.clientHeight;
+  sctx.clearRect(0, 0, w, h);
+
+  // Build smooth closed curve via midpoints + quadratic curves
+  sctx.beginPath();
+  for (let i = 0; i < NUM_POINTS; i++) {
+    const p0 = slimePoints[i];
+    const p1 = slimePoints[(i + 1) % NUM_POINTS];
+    const mx = (p0.x + p1.x) / 2;
+    const my = (p0.y + p1.y) / 2;
+    if (i === 0) sctx.moveTo(mx, my);
+    else sctx.quadraticCurveTo(p0.x, p0.y, mx, my);
+  }
+  // Close back to first midpoint
+  const p0 = slimePoints[0], pn = slimePoints[NUM_POINTS - 1];
+  sctx.quadraticCurveTo(pn.x, pn.y, (pn.x + p0.x) / 2, (pn.y + p0.y) / 2);
+  sctx.closePath();
+
+  // Average center for shading
+  let cx = 0, cy = 0;
+  for (const pt of slimePoints) { cx += pt.x; cy += pt.y; }
+  cx /= NUM_POINTS; cy /= NUM_POINTS;
+
+  // Drop shadow
+  sctx.save();
+  sctx.shadowColor = 'rgba(0,0,0,0.18)';
+  sctx.shadowBlur = 18;
+  sctx.shadowOffsetY = 8;
+
+  const grad = sctx.createRadialGradient(
+    cx - slimeRadius * 0.35, cy - slimeRadius * 0.42, slimeRadius * 0.05,
+    cx, cy, slimeRadius * 1.4
+  );
+  grad.addColorStop(0, 'rgba(255,255,255,0.95)');
+  grad.addColorStop(0.18, lighten(slimeColor, 20));
+  grad.addColorStop(0.55, slimeColor);
+  grad.addColorStop(1, shade(slimeColor, -28));
+  sctx.fillStyle = grad;
+  sctx.fill();
+  sctx.restore();
+
+  // Big specular highlight
+  sctx.beginPath();
+  sctx.ellipse(cx - slimeRadius * 0.34, cy - slimeRadius * 0.42, slimeRadius * 0.22, slimeRadius * 0.11, -0.45, 0, Math.PI * 2);
+  sctx.fillStyle = 'rgba(255,255,255,0.55)';
+  sctx.fill();
+
+  // Small secondary highlight
+  sctx.beginPath();
+  sctx.ellipse(cx + slimeRadius * 0.25, cy + slimeRadius * 0.1, slimeRadius * 0.08, slimeRadius * 0.04, 0.6, 0, Math.PI * 2);
+  sctx.fillStyle = 'rgba(255,255,255,0.3)';
+  sctx.fill();
+}
+
+function shade(hex, percent) {
+  const num = parseInt(hex.slice(1), 16);
+  const r = clamp((num >> 16) + percent);
+  const g = clamp(((num >> 8) & 0xff) + percent);
+  const b = clamp((num & 0xff) + percent);
+  return `rgb(${r},${g},${b})`;
+}
+function lighten(hex, percent) { return shade(hex, percent); }
+function clamp(v) { return Math.max(0, Math.min(255, v)); }
+
+function slimeLoop() {
+  if (document.getElementById('slime-scene').classList.contains('active')) {
+    updateSlime();
+    drawSlime();
+  }
+  requestAnimationFrame(slimeLoop);
+}
+
+// ============== 3) Monsters (卡通版挤痘痘) ==============
+const pimpleScene = document.getElementById('pimple-scene');
+const monsters = [];
+
+function spawnMonster() {
+  if (!document.getElementById('pimple-scene')) return;
+  if (monsters.length >= 9) return;
+  const w = pimpleScene.clientWidth;
+  const h = pimpleScene.clientHeight;
+  if (w === 0 || h === 0) return;
+
+  const size = 54 + Math.random() * 36;
+  const margin = size * 0.6 + 16;
+  const x = margin + Math.random() * (w - margin * 2);
+  const y = margin + 30 + Math.random() * (h - margin * 2 - 40);
+
+  const m = document.createElement('div');
+  m.className = 'monster';
+  m.style.width = size + 'px';
+  m.style.height = size + 'px';
+  m.style.left = x + 'px';
+  m.style.top = y + 'px';
+
+  const hue = Math.floor(Math.random() * 360);
+  const sat = 70 + Math.random() * 20;
+  const colorMid = `hsl(${hue},${sat}%,72%)`;
+  const colorDeep = `hsl(${hue},${sat-10}%,52%)`;
+  const colorLight = `hsl(${hue},${sat}%,90%)`;
+
+  const body = document.createElement('div');
+  body.className = 'body';
+  body.style.background = `radial-gradient(circle at 35% 30%, ${colorLight}, ${colorMid} 55%, ${colorDeep})`;
+  body.style.animationDelay = (Math.random() * 2).toFixed(2) + 's';
+
+  const face = document.createElement('div');
+  face.className = 'face';
+  face.innerHTML = '<div class="eyes"><div class="eye"></div><div class="eye"></div></div><div class="mouth"></div>';
+
+  body.appendChild(face);
+  m.appendChild(body);
+
+  m._color = colorMid;
+  m._x = x; m._y = y;
+
+  m.addEventListener('pointerdown', (e) => {
+    if (m.classList.contains('popping')) return;
+    e.stopPropagation();
+    ensureAudio();
+    m.classList.add('popping');
+    playPop(380 + Math.random() * 480);
+    vibrate(18);
+    spawnSplats(m._x, m._y, m._color);
+    setTimeout(() => {
+      m.remove();
+      const idx = monsters.indexOf(m);
+      if (idx >= 0) monsters.splice(idx, 1);
+      setTimeout(spawnMonster, 500 + Math.random() * 1200);
+    }, 330);
+  });
+
+  pimpleScene.appendChild(m);
+  monsters.push(m);
+}
+
+function spawnSplats(x, y, color) {
+  const count = 7 + Math.floor(Math.random() * 4);
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('div');
+    s.className = 'splat';
+    const size = 6 + Math.random() * 8;
+    s.style.width = size + 'px';
+    s.style.height = size + 'px';
+    s.style.background = color;
+    s.style.left = x + 'px';
+    s.style.top = y + 'px';
+    pimpleScene.appendChild(s);
+
+    const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.6;
+    const dist = 40 + Math.random() * 50;
+    const dx = Math.cos(angle) * dist;
+    const dy = Math.sin(angle) * dist;
+    // Animate via Web Animations API for reliability
+    s.animate(
+      [
+        { transform: 'translate(-50%,-50%) scale(0.3)', opacity: 1 },
+        { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1)`, opacity: 0 }
+      ],
+      { duration: 600 + Math.random() * 200, easing: 'cubic-bezier(.2,.7,.4,1)', fill: 'forwards' }
+    );
+    setTimeout(() => s.remove(), 850);
+  }
+}
+
+function initMonsters() {
+  monsters.forEach(m => m.remove());
+  monsters.length = 0;
+  const count = 6;
+  for (let i = 0; i < count; i++) {
+    setTimeout(spawnMonster, i * 150);
+  }
+}
+
+// ============== Init ==============
+function resizeAll() {
+  buildBubbles();
+  resizeSlime();
+  // Reposition existing monsters within new bounds
+  monsters.forEach(m => {
+    const w = pimpleScene.clientWidth, h = pimpleScene.clientHeight;
+    if (m._x > w - 40) m._x = w - 40;
+    if (m._y > h - 40) m._y = h - 40;
+    m.style.left = m._x + 'px';
+    m.style.top = m._y + 'px';
+  });
+}
+
+window.addEventListener('load', () => {
+  resizeAll();
+  initMonsters();
+  slimeLoop();
+});
+window.addEventListener('resize', resizeAll);
+window.addEventListener('orientationchange', () => setTimeout(resizeAll, 200));
+
+// Block context menu / iOS callouts
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('gesturestart', e => e.preventDefault());
+</script>
+</body>
+</html>
