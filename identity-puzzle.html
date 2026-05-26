@@ -3935,13 +3935,15 @@ function applyMark(mark) {
   if (i < 0 || !state.active) return;
   const diff = CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty;
 
-  // === Acts 1, 2, 3: exploration — no penalty, accumulates suspects ===
-  if (isExplorationAct()) {
-    haptic([8, 20, 8]);
+  // All acts use verification-style marking: correct → lock, wrong → -1 heart.
+  // chapterSuspects now tracks CONFIRMED spies (only added on a correct 'bad' mark).
+  const truth = state.solution[i];
+  const guess = (mark === 'bad');
+  if (guess === truth) {
+    haptic([15, 40, 15]);
     state.marks[i] = mark;
-    state.locked[i] = false;
+    state.locked[i] = true;
     state.actTouched[i] = true;
-    // Track this character as a suspect across the chapter (persists to localStorage)
     const name = state.cast[i].name;
     if (mark === 'bad' && !state.chapterSuspects.includes(name)) {
       state.chapterSuspects.push(name);
@@ -3950,22 +3952,7 @@ function applyMark(mark) {
       saveProgress();
     }
     closeModal('modal-character');
-    setEcho(`${name} · ${labelFor(mark)}`);
-    render(diff);
-    checkActComplete();
-    return;
-  }
-
-  // === Act 3: final verdict ===
-  const truth = state.solution[i];
-  const guess = (mark === 'bad');
-  if (guess === truth) {
-    haptic([15, 40, 15]);
-    state.marks[i] = mark;
-    state.locked[i] = true;
-    state.actTouched[i] = true;
-    closeModal('modal-character');
-    setEcho(`${state.cast[i].name} 已确认 · ${truth ? labelFor('bad', true) : labelFor('good', true)}`);
+    setEcho(`${name} 已确认 · ${truth ? labelFor('bad') : labelFor('good')}`);
     render(diff);
     checkWin();
   } else {
