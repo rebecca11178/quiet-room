@@ -4177,68 +4177,83 @@ function useHint() {
     return;
   }
 
-  // Visible characters this act
-  const visibleSet = new Set(state.cast.slice(0, state.total).map(c => c.name));
+  // ─── Acts 1-3: hints tailored to the act's dominant clue types ──────
+  // Relationship-network hints stay OUT — they only matter in Act 4.
+  const diffKey = ch.levels[state.currentLevelIdx]?.difficulty || 'normal';
 
-  const hints = [];
-
-  // — A. Relationship-pair hints (drawn from intro pair scenes) —
-  if (ch.intro) {
-    for (const scene of ch.intro) {
-      if (scene.kind !== 'pair') continue;
-      if (visibleSet.has(scene.a) && visibleSet.has(scene.b)) {
-        hints.push(`关系网 · ${scene.a} 与 ${scene.b}：${scene.link}\n他们之间留着一条逻辑路径——重新听他们各自说的话。`);
-      }
-    }
+  // Shared stats
+  let markedBad = 0, markedGood = 0;
+  for (let i = 0; i < state.total; i++) {
+    if (state.marks[i] === 'bad') markedBad++;
+    else if (state.marks[i] === 'good') markedGood++;
   }
+  let totalSpies = 0;
+  for (let i = 0; i < state.total; i++) if (state.solution[i]) totalSpies++;
+  let unread = 0;
+  for (let i = 0; i < state.total; i++) if (!state.visited[i]) unread++;
 
-  // — B. Self-attestation reminder —
-  hints.push(`公开说自己是「${finalGood}」的人——可信。\n这一群里，没人会撒这种谎。`);
-
-  // — C. Row/column logic reminder (without revealing counts) —
-  hints.push(`再翻笔记——\n每一行、每一列，总有人提过他们那边的人数。\n把数字对一对。`);
-
-  // — D. Profession hint (without revealing which side) —
   const profGroups = {};
   for (let i = 0; i < state.total; i++) {
     const role = state.cast[i].role;
     (profGroups[role] = profGroups[role] || []).push(i);
   }
   const multiProfs = Object.entries(profGroups).filter(([_, idxs]) => idxs.length >= 2);
-  if (multiProfs.length) {
-    const [prof] = pick(multiProfs);
-    hints.push(`所有 ${prof}——把他们放在一起看。\n同一职位的人，命运常常是一致的。`);
-  }
 
-  // — E. Mark count parity nudge (general, doesn't reveal who) —
-  let markedBad = 0, markedGood = 0;
-  for (let i = 0; i < state.total; i++) {
-    if (state.marks[i] === 'bad') markedBad++;
-    else if (state.marks[i] === 'good') markedGood++;
-  }
-  // Use the total spy count (it's stated openly in clues, fair to remind)
-  let totalSpies = 0;
-  for (let i = 0; i < state.total; i++) if (state.solution[i]) totalSpies++;
-  if (markedBad < totalSpies) {
-    hints.push(`总数想一想——\n这一幕的「${finalBad}」总数已经在台词里说过。\n你的「${tentativeBad}」是不是少了？`);
-  } else if (markedBad > totalSpies) {
-    hints.push(`你标的「${tentativeBad}」可能多了。\n再回去对一下总数。`);
-  }
+  const hints = [];
 
-  // — F. Direction nudge —
-  if (state.rows > 1 && state.cols > 1) {
-    hints.push(`有人提过「上方一格」「左侧一格」——\n那是最短的推理路径。\n去翻翻笔记里的方向词。`);
+  if (diffKey === 'easy') {
+    // === Act 1 (3×3 · 9 cards) — directest possible clues ============
+    hints.push(`这一幕最直接——每张卡的台词里自己就藏着线索。`);
+    hints.push(`公开说自己 ${finalGood} 的人——可信。这一群里没人撒这种谎。`);
+    hints.push(`「{name} 在我上方 / 左侧」——上下左右的邻居最容易推。`);
+    if (multiProfs.length) {
+      const [prof] = pick(multiProfs);
+      hints.push(`所有 ${prof}——同一职位，常常是一致的。把他们放一起看。`);
+    }
+    if (markedBad < totalSpies) {
+      hints.push(`台词里有人说总数——${finalBad} 一共 ${totalSpies} 人。你标了 ${markedBad}，差 ${totalSpies - markedBad} 个。`);
+    } else if (markedBad > totalSpies) {
+      hints.push(`你标的 ${tentativeBad} 多了——总数 ${totalSpies} vs 你标 ${markedBad}。再核一遍。`);
+    }
+    if (unread > 0) {
+      hints.push(`还有 ${unread} 张没翻过——听完所有人再判断。`);
+    }
+  } else if (diffKey === 'normal') {
+    // === Act 2 (4×4 · 16 cards) — row/col counts + entry-level chains ===
+    hints.push(`每一行、每一列都有人报过数——把表格当数独看，对一对。`);
+    hints.push(`公开说自己 ${finalGood} 的人——可信。`);
+    hints.push(`「{B} 周围 N 个」——链式线索：跟 B 自己周围邻居的台词对一对。`);
+    hints.push(`「比 B 那边脏 / 一样多」——比较型台词，用来缩小哪一边。`);
+    if (multiProfs.length) {
+      const [prof] = pick(multiProfs);
+      hints.push(`所有 ${prof}——同一职位的命运常常相连。`);
+    }
+    if (markedBad < totalSpies) {
+      hints.push(`总数 ${totalSpies}——你标了 ${markedBad}，差 ${totalSpies - markedBad}。`);
+    } else if (markedBad > totalSpies) {
+      hints.push(`你标的 ${tentativeBad} 比总数 ${totalSpies} 多了。`);
+    }
+    hints.push(`矛盾里藏真相——两个人的话不能同时为真，其中一个就破了。`);
+    if (unread > 0) {
+      hints.push(`还有 ${unread} 张没翻——别漏听。`);
+    }
+  } else {
+    // === Act 3 (5×4 · 20 cards) — deep chain reasoning ===============
+    hints.push(`这一幕主线是「{B} 周围 N 个」——把不同人对同一目标的描述交叉对应。`);
+    hints.push(`「我跟 {B} 有共同邻居——其中 X 个 ${finalGood}」——找出那几个重叠的再算。`);
+    hints.push(`「我身边 ${finalGood} 的人数 = {B} 身边 ${finalBad} 的人数」——这种等量约束很强。`);
+    hints.push(`「{B} 那一排 / 那一列 N 个 ${finalBad}」——别忘了横向对照。`);
+    hints.push(`整组职业的台词偶尔出一次（「{prof} 一个不留都是 ${finalBad}」）——抓到就拿一整组。`);
+    if (markedBad < totalSpies) {
+      hints.push(`总数 ${totalSpies}——你标了 ${markedBad}，还差 ${totalSpies - markedBad}。`);
+    } else if (markedBad > totalSpies) {
+      hints.push(`你标的 ${tentativeBad} 多了——总数 ${totalSpies}。`);
+    }
+    hints.push(`矛盾里藏真相——20 张卡里总有人说的话彼此抵消。`);
+    if (unread > 0) {
+      hints.push(`${unread} 张没翻过——这一幕信息密度高，别漏。`);
+    }
   }
-
-  // — G. Notebook nudge for unread characters —
-  let unread = 0;
-  for (let i = 0; i < state.total; i++) if (!state.visited[i]) unread++;
-  if (unread > 0) {
-    hints.push(`还有 ${unread} 张卡没翻过。\n听完所有人，再下判断。`);
-  }
-
-  // — H. Contradiction-style reminder —
-  hints.push(`矛盾里——藏着真相。\n如果两个人说的话不可能同时为真，那其中一个就破了。`);
 
   setEcho(`💡 ${pick(hints)}`);
 }
