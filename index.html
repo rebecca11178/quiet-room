@@ -31,6 +31,14 @@
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+  /* Paint the gradient on <html> so iOS Safari's dynamic viewport can't leave
+     a white strip below the body when the URL bar shows/hides. Solid fallback
+     bg matches the gradient's start color so any uncovered pixel still reads dark. */
+  html {
+    background: #131534 linear-gradient(160deg, #131534 0%, #1f1432 50%, #2c1730 100%) no-repeat;
+    background-attachment: fixed;
+    min-height: 100%;
+  }
   body {
     font-family: "PingFang SC", "Microsoft YaHei", -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
     color: var(--text);
@@ -38,8 +46,7 @@
     min-height: 100dvh;
     padding: env(safe-area-inset-top, 32px) 16px env(safe-area-inset-bottom, 32px);
     -webkit-font-smoothing: antialiased;
-    background: linear-gradient(160deg, #131534 0%, #1f1432 50%, #2c1730 100%);
-    background-attachment: fixed;
+    background: transparent;
     user-select: none;
   }
   body::before {
