@@ -990,9 +990,11 @@ const DIFFICULTY = {
   // Chain rate progression: 15% → 60% → 92% → 75% (Act 4)
   // Hard cranks fluff way down and chain density up — fewer self row/col
   // clues, more "A says C's neighborhood has X" deductions.
-  easy:    { rows: 3, cols: 3, spyMin: 2, spyMax: 3, fluffRate: 0.10, chainRate: 0.15 },
-  normal:  { rows: 4, cols: 4, spyMin: 5, spyMax: 7, fluffRate: 0.18, chainRate: 0.70 },
-  hard:    { rows: 5, cols: 4, spyMin: 6, spyMax: 8, fluffRate: 0.20, chainRate: 0.92 },
+  // selfCleanRate = ratio of innocents who openly self-attest. Hard drops to 0.20
+  // (instead of 0.50) so Act 3 doesn't hand the player ~half the clean roster.
+  easy:    { rows: 3, cols: 3, spyMin: 2, spyMax: 3, fluffRate: 0.10, chainRate: 0.15, selfCleanRate: 0.50 },
+  normal:  { rows: 4, cols: 4, spyMin: 5, spyMax: 7, fluffRate: 0.18, chainRate: 0.70, selfCleanRate: 0.50 },
+  hard:    { rows: 5, cols: 4, spyMin: 6, spyMax: 8, fluffRate: 0.20, chainRate: 0.92, selfCleanRate: 0.20 },
   // 'verdict' grid is dynamic — set per-suspect-count in startLevel
   verdict: { rows: 5, cols: 4, spyMin: 1, spyMax: 8, fluffRate: 0.15, chainRate: 0.75 },
 };
@@ -3371,9 +3373,11 @@ function generateStatements(cast, sol, theme, diff) {
     }
   }
 
-  // (5) ~half innocents self-attest
+  // (5) Innocents self-attest. Rate is per-difficulty so hard (Act 3) keeps
+  // the "把我划掉" / "查我门禁" lines rare instead of half the clean roster.
   const freeInnocents = [...Array(N).keys()].filter(i => !sol[i] && !used.has(i));
-  const numSelf = Math.ceil(freeInnocents.length * 0.5);
+  const selfRate = (diff && typeof diff.selfCleanRate === 'number') ? diff.selfCleanRate : 0.5;
+  const numSelf = Math.ceil(freeInnocents.length * selfRate);
   shuffle(freeInnocents).slice(0, numSelf).forEach(i => place(i, pick(theme.selfClean)));
 
   // (6) fill remaining with difficulty mix
@@ -3575,8 +3579,19 @@ function startLevel() {
   const diff = DIFFICULTY[diffKey];
   const isVerdict = diffKey === 'verdict';
 
-  // (A) Initialize chapter-wide truth + suspect set on chapter switch
-  if (state.chapterId !== ch.id) {
+  // (A0) Bump per-act replay counter so every entry into this act produces
+  // a fresh puzzle (new spy assignment, new cast subset, new clue texts).
+  // Counter persists across sessions via localStorage.
+  const _prog = ensureProgress(ch.id);
+  _prog.actNonces = _prog.actNonces || [];
+  _prog.actNonces[state.currentLevelIdx] = (_prog.actNonces[state.currentLevelIdx] || 0) + 1;
+  saveProgress();
+  const _nonce = _prog.actNonces[state.currentLevelIdx];
+  const _nonceKey = ':n' + _nonce;
+
+  // (A) Re-generate chapter-wide truth on every entry. The nonce in the
+  // seed guarantees variation across replays.
+  {
     state.chapterId = ch.id;
     // Generate chapter truth deterministically. Constraints:
     //  · 'same' typed bonds (亲密/师徒/暗婚/MIT 同学) MUST share identity
@@ -3593,7 +3608,7 @@ function startLevel() {
     let chosenSpies = null;
     let chosenSpyCount = 6;
     for (let attempt = 0; attempt < 80; attempt++) {
-      seedPuzzleRng(hashSeed(ch.id + ':truth:v3:' + attempt));
+      seedPuzzleRng(hashSeed(ch.id + ':truth:v3' + _nonceKey + ':' + attempt));
       const spyCount = 5 + Math.floor(rand() * 3); // 5-7 spies per chapter
       const candidate = new Set(shuffle([...allNames]).slice(0, spyCount));
       // Typed constraints
@@ -3626,7 +3641,7 @@ function startLevel() {
     if (!chosenSpies) {
       // Fallback: typed constraints only (no diversity check)
       for (let attempt = 0; attempt < 200; attempt++) {
-        seedPuzzleRng(hashSeed(ch.id + ':truth:fallback:' + attempt));
+        seedPuzzleRng(hashSeed(ch.id + ':truth:fallback' + _nonceKey + ':' + attempt));
         const spyCount = 5 + Math.floor(rand() * 3);
         const candidate = new Set(shuffle([...allNames]).slice(0, spyCount));
         let ok = true;
@@ -3638,7 +3653,7 @@ function startLevel() {
     }
     if (!chosenSpies) {
       // Last-resort: unconstrained
-      seedPuzzleRng(hashSeed(ch.id + ':truth'));
+      seedPuzzleRng(hashSeed(ch.id + ':truth' + _nonceKey));
       chosenSpyCount = 5 + Math.floor(rand() * 3);
       chosenSpies = new Set(shuffle([...allNames]).slice(0, chosenSpyCount));
     }
@@ -3667,7 +3682,7 @@ function startLevel() {
     ch.cast.forEach(c => { if (state.chapterTruth[c.name]) addName(c.name); });
     const spySet = new Set(order);
     // 2) Edges that touch a spy — these are the discriminating relationships
-    seedPuzzleRng(hashSeed(ch.id + ':verdict-edges'));
+    seedPuzzleRng(hashSeed(ch.id + ':verdict-edges' + _nonceKey));
     const edgesShuffled = shuffle([...edges]);
     edgesShuffled.filter(e => spySet.has(e.a) || spySet.has(e.b))
       .forEach(e => { addName(e.a); addName(e.b); });
@@ -3675,7 +3690,7 @@ function startLevel() {
     edgesShuffled.filter(e => !spySet.has(e.a) && !spySet.has(e.b))
       .forEach(e => { addName(e.a); addName(e.b); });
     // 4) Random fill to 16
-    seedPuzzleRng(hashSeed(ch.id + ':verdict-fill'));
+    seedPuzzleRng(hashSeed(ch.id + ':verdict-fill' + _nonceKey));
     const remaining = shuffle(ch.cast.filter(c => !added.has(c.name)).map(c => c.name));
     while (order.length < 16 && remaining.length > 0) order.push(remaining.shift());
     let names = order.slice(0, 16);
@@ -3700,7 +3715,7 @@ function startLevel() {
 
   openNarrative(level.title, level.prelude, () => {
     // (C) Build cast for this act
-    const seed = level.seed || hashSeed(ch.id + ':' + state.currentLevelIdx);
+    const seed = level.seed || hashSeed(ch.id + ':' + state.currentLevelIdx + _nonceKey);
     seedPuzzleRng(seed);
     if (isVerdict) {
       // Cast = chapter characters whose name is in chapterSuspects
