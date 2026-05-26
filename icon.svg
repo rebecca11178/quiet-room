@@ -1,0 +1,42 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1d2244"/>
+      <stop offset="100%" stop-color="#0e0f1d"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="rgba(244,168,197,0.55)"/>
+      <stop offset="50%" stop-color="rgba(244,168,197,0.15)"/>
+      <stop offset="100%" stop-color="rgba(244,168,197,0)"/>
+    </radialGradient>
+    <radialGradient id="flameOuter">
+      <stop offset="0%" stop-color="rgba(255,235,180,0.95)"/>
+      <stop offset="40%" stop-color="rgba(255,184,0,0.85)"/>
+      <stop offset="80%" stop-color="rgba(255,106,0,0.6)"/>
+      <stop offset="100%" stop-color="rgba(255,106,0,0)"/>
+    </radialGradient>
+    <radialGradient id="flameInner">
+      <stop offset="0%" stop-color="#fff8e0"/>
+      <stop offset="100%" stop-color="rgba(255,200,100,0.3)"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="115" fill="url(#bgGrad)"/>
+
+  <circle cx="120" cy="100" r="2"   fill="#ffffff" opacity="0.4"/>
+  <circle cx="380" cy="80"  r="1.5" fill="#ffffff" opacity="0.3"/>
+  <circle cx="430" cy="180" r="2"   fill="#ffffff" opacity="0.35"/>
+  <circle cx="90"  cy="260" r="1.5" fill="#ffffff" opacity="0.3"/>
+  <circle cx="410" cy="380" r="2"   fill="#ffffff" opacity="0.3"/>
+
+  <circle cx="256" cy="220" r="200" fill="url(#halo)"/>
+
+  <rect x="220" y="290" width="72" height="135" rx="6" fill="#f4e8d3"/>
+  <rect x="226" y="295" width="12" height="125" rx="3" fill="rgba(255,255,255,0.4)"/>
+  <ellipse cx="256" cy="290" rx="36" ry="5" fill="#e8d5b5"/>
+
+  <line x1="256" y1="290" x2="256" y2="265" stroke="#3a2614" stroke-width="3" stroke-linecap="round"/>
+
+  <ellipse cx="256" cy="235" rx="26" ry="48" fill="url(#flameOuter)"/>
+  <ellipse cx="256" cy="245" rx="11" ry="26" fill="url(#flameInner)"/>
+</svg>

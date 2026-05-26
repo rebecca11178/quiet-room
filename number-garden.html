@@ -2,8 +2,20 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#f5f1ea" />
 <title>数字花园 · Number Garden</title>
+<meta name="description" content="用 +−×÷ 把数字凑成目标——完成一题，开出一朵花。" />
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="静室" />
+<meta name="format-detection" content="telephone=no" />
 <style>
   :root {
     --bg: #f5f1ea;
@@ -28,13 +40,46 @@
     background: var(--bg);
     color: var(--ink);
     min-height: 100vh;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px 16px;
+    padding:
+      calc(24px + env(safe-area-inset-top, 0px))
+      calc(16px + env(safe-area-inset-right, 0px))
+      calc(24px + env(safe-area-inset-bottom, 0px))
+      calc(16px + env(safe-area-inset-left, 0px));
     line-height: 1.5;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+    overscroll-behavior: none;
     -webkit-font-smoothing: antialiased;
+    position: relative;
   }
+
+  .home-back {
+    position: fixed;
+    top: max(16px, env(safe-area-inset-top, 16px));
+    left: 16px;
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--accent-soft);
+    color: var(--ink-soft);
+    font-size: 20px;
+    line-height: 1;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow);
+    transition: all 0.2s ease;
+    padding-bottom: 2px;
+    z-index: 50;
+  }
+  .home-back:hover { color: var(--ink); border-color: var(--accent); }
+  .home-back:active { transform: scale(0.92); }
 
   header {
     text-align: center;
@@ -263,16 +308,29 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 6px;
-    min-height: 40px;
+    gap: 8px;
+    min-height: 56px;
     align-items: center;
+    padding: 4px 0;
   }
 
   .flower {
-    font-size: 24px;
-    animation: bloom 0.6s ease;
+    display: inline-block;
+    line-height: 0;
+    animation: bloom 0.75s cubic-bezier(0.34, 1.6, 0.6, 1);
     transform-origin: center bottom;
   }
+  .flower-sway {
+    display: inline-block;
+    line-height: 0;
+    transform-origin: center 78%;
+    animation: sway 5s ease-in-out infinite;
+    animation-delay: var(--sway-delay, 0s);
+    filter:
+      drop-shadow(0 4px 5px rgba(216, 67, 138, 0.18))
+      drop-shadow(0 1px 2px rgba(0, 0, 0, 0.08));
+  }
+  .flower svg { display: block; }
 
   .flower-empty {
     font-size: 12px;
@@ -281,9 +339,13 @@
   }
 
   @keyframes bloom {
-    0% { transform: scale(0) rotate(-20deg); opacity: 0; }
-    60% { transform: scale(1.2) rotate(10deg); }
-    100% { transform: scale(1) rotate(0); opacity: 1; }
+    0%   { transform: scale(0) rotate(-32deg); opacity: 0; }
+    55%  { transform: scale(1.18) rotate(10deg); opacity: 1; }
+    100% { transform: scale(1) rotate(0); }
+  }
+  @keyframes sway {
+    0%, 100% { transform: rotate(-4deg); }
+    50%      { transform: rotate(4deg); }
   }
 
   .toast {
@@ -331,9 +393,10 @@
 </style>
 </head>
 <body>
+  <a href="index.html" class="home-back" title="返回首页" aria-label="返回首页">‹</a>
   <header>
     <h1>数字花园</h1>
-    <div class="subtitle">Number Garden · 慢慢来，没有计时</div>
+    <div class="subtitle">Number Garden</div>
   </header>
 
   <main class="game-card">
@@ -375,12 +438,69 @@
 
   <div class="breathe">深 · 呼 · 吸</div>
 
-  <footer>无对错 · 无失败 · 累了就关掉</footer>
-
   <div class="toast" id="toast"></div>
 
 <script>
-  const FLOWERS = ['🌸','🌷','🌼','🌺','🌻','💐','🪷','🌹','🏵️','💮'];
+  // ===== Custom SVG flowers — double-layered petals, radial gradients, glow centers =====
+  const FLOWERS = [
+    { id: 'rose',      petals: 8,  petalW: 4.5, petalH: 11, backR: 13, frontR: 8,  c1: '#ff5b8b', c2: '#c41663', center: '#ffd166', centerDark: '#ff9f43', glow: '#ffe0eb' },
+    { id: 'tulip',     petals: 6,  petalW: 5.5, petalH: 12, backR: 12, frontR: 7,  c1: '#ff7eb6', c2: '#d63384', center: '#fcbf49', centerDark: '#f48c06', glow: '#ffd6ec' },
+    { id: 'daisy',     petals: 12, petalW: 2.6, petalH: 11, backR: 13, frontR: 8,  c1: '#ffffff', c2: '#fff5cc', center: '#ffb800', centerDark: '#e85d04', glow: '#ffffff' },
+    { id: 'sunflower', petals: 16, petalW: 2.6, petalH: 12, backR: 14, frontR: 9,  c1: '#ffd166', c2: '#f48c06', center: '#5a2a0c', centerDark: '#2e1100', glow: '#fff3a3' },
+    { id: 'cherry',    petals: 5,  petalW: 6,   petalH: 10, backR: 12, frontR: 7,  c1: '#ffd6e7', c2: '#ff8fb1', center: '#fcbf49', centerDark: '#f48c06', glow: '#fff5f9' },
+    { id: 'lotus',     petals: 8,  petalW: 5,   petalH: 13, backR: 13, frontR: 8,  c1: '#ffb3c6', c2: '#ee5b8b', center: '#fcbf49', centerDark: '#f48c06', glow: '#ffe0eb' },
+    { id: 'iris',      petals: 6,  petalW: 5,   petalH: 12, backR: 13, frontR: 8,  c1: '#a78bfa', c2: '#6d28d9', center: '#fde047', centerDark: '#ca8a04', glow: '#ddd6fe' },
+    { id: 'hibiscus',  petals: 5,  petalW: 6.5, petalH: 12, backR: 13, frontR: 8,  c1: '#ff6a5b', c2: '#dc2626', center: '#fef08a', centerDark: '#ca8a04', glow: '#fee2e2' },
+    { id: 'forget',    petals: 5,  petalW: 5,   petalH: 9,  backR: 12, frontR: 7,  c1: '#7dd3fc', c2: '#0284c7', center: '#fef08a', centerDark: '#facc15', glow: '#e0f2fe' },
+    { id: 'marigold',  petals: 14, petalW: 2.6, petalH: 11, backR: 13, frontR: 8,  c1: '#ff9f43', c2: '#e85d04', center: '#9a3412', centerDark: '#5c1a05', glow: '#ffe9b3' },
+  ];
+  const FLOWERS_MAP = Object.fromEntries(FLOWERS.map(f => [f.id, f]));
+  let flowerUid = 0;
+
+  function flowerSVG(f) {
+    const size = 40;
+    const cx = size / 2, cy = size / 2 + 1;
+    const u = f.id + '-' + (++flowerUid);
+    let petals = '';
+    // Back layer — larger, paler, full-symmetric
+    for (let i = 0; i < f.petals; i++) {
+      const a = (i / f.petals) * 360;
+      petals += `<ellipse cx="${cx}" cy="${cy - f.backR}" rx="${f.petalW}" ry="${f.petalH}" fill="url(#${u}-b)" opacity="0.92" transform="rotate(${a} ${cx} ${cy})"/>`;
+    }
+    // Front layer — smaller, brighter, half-offset for fullness
+    for (let i = 0; i < f.petals; i++) {
+      const a = (i / f.petals) * 360 + (180 / f.petals);
+      petals += `<ellipse cx="${cx}" cy="${cy - f.frontR}" rx="${Math.max(2, f.petalW - 0.8)}" ry="${Math.max(4, f.petalH - 2.5)}" fill="url(#${u}-f)" transform="rotate(${a} ${cx} ${cy})"/>`;
+    }
+    return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="${u}-b" cx="50%" cy="28%" r="100%">
+          <stop offset="0%" stop-color="${f.glow}"/>
+          <stop offset="100%" stop-color="${f.c1}"/>
+        </radialGradient>
+        <radialGradient id="${u}-f" cx="50%" cy="22%" r="100%">
+          <stop offset="0%" stop-color="${f.glow}"/>
+          <stop offset="55%" stop-color="${f.c1}"/>
+          <stop offset="100%" stop-color="${f.c2}"/>
+        </radialGradient>
+        <radialGradient id="${u}-c" cx="35%" cy="35%" r="80%">
+          <stop offset="0%" stop-color="#ffffff"/>
+          <stop offset="55%" stop-color="${f.center}"/>
+          <stop offset="100%" stop-color="${f.centerDark}"/>
+        </radialGradient>
+      </defs>
+      ${petals}
+      <circle cx="${cx}" cy="${cy}" r="4.8" fill="url(#${u}-c)"/>
+      <circle cx="${cx - 1.4}" cy="${cy - 1.4}" r="1.4" fill="#ffffff" opacity="0.7"/>
+    </svg>`;
+  }
+
+  function renderFlowerEntry(entry) {
+    // entry can be a flower id ('rose', 'tulip'…) or legacy emoji (older saves).
+    const f = FLOWERS_MAP[entry];
+    if (f) return flowerSVG(f);
+    return `<span style="font-size:24px;line-height:1;">${entry}</span>`;
+  }
 
   const state = {
     target: 0,
@@ -490,13 +610,10 @@
       el.flowers.innerHTML = '<span class="flower-empty">完成题目，开出第一朵花</span>';
       return;
     }
-    el.flowers.innerHTML = '';
-    state.flowers.forEach(f => {
-      const span = document.createElement('span');
-      span.className = 'flower';
-      span.textContent = f;
-      el.flowers.appendChild(span);
-    });
+    el.flowers.innerHTML = state.flowers.map((f, i) => {
+      const delay = ((i * 173) % 1000) / 1000 * 2.4; // desync sway phases
+      return `<span class="flower"><span class="flower-sway" style="--sway-delay:${delay.toFixed(2)}s;">${renderFlowerEntry(f)}</span></span>`;
+    }).join('');
   }
 
   function formatNumber(n) {
@@ -597,7 +714,7 @@
     if (v === state.target) {
       setTimeout(() => {
         const flower = FLOWERS[Math.floor(Math.random() * FLOWERS.length)];
-        state.flowers.push(flower);
+        state.flowers.push(flower.id);
         if (state.flowers.length > 30) state.flowers.shift();
         showToast(`+ 1 朵花 🌿`);
         state.level += 1;

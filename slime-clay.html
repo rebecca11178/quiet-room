@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#FFF8F0" />
+<title>Slime · Clay</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg-top: #FFF8F0;
+    --bg-bot: #FFE8D6;
+    --surface: #FFFFFF;
+    --surface-soft: #FFF1E0;
+    --text: #5C4A3A;
+    --text-soft: #A08775;
+    --text-hint: #D4B8A0;
+    --accent: #FFB088;
+    --accent-hover: #FF9166;
+    --success: #A8D5A0;
+    --r-sm: 16px;
+    --r-md: 24px;
+    --r-lg: 32px;
+    --r-full: 9999px;
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    /* Claymorphism shadow — every raised surface uses this */
+    --clay:
+      inset 0 4px 8px rgba(255, 255, 255, 0.55),
+      inset 0 -4px 8px rgba(180, 140, 100, 0.15),
+      0 12px 24px -4px rgba(180, 130, 90, 0.25),
+      0 4px 8px -2px rgba(180, 130, 90, 0.15);
+    --clay-pressed:
+      inset 0 -4px 8px rgba(255, 255, 255, 0.4),
+      inset 0 4px 10px rgba(180, 140, 100, 0.28),
+      0 2px 4px -1px rgba(180, 130, 90, 0.18);
+    --clay-strong:
+      inset 0 6px 10px rgba(255, 255, 255, 0.65),
+      inset 0 -5px 10px rgba(180, 140, 100, 0.18),
+      0 16px 32px -4px rgba(180, 130, 90, 0.32),
+      0 6px 12px -2px rgba(180, 130, 90, 0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+  body {
+    font-family: 'Nunito', 'Quicksand', "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 600;
+    color: var(--text);
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bot) 100%);
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  /* Cream grain overlay — fixed paper-like dots, very subtle */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(circle at 17% 23%, rgba(255,255,255,0.45) 1px, transparent 2px),
+      radial-gradient(circle at 62% 71%, rgba(255,255,255,0.35) 1px, transparent 2px),
+      radial-gradient(circle at 81% 12%, rgba(255,255,255,0.40) 1px, transparent 2px),
+      radial-gradient(circle at 33% 82%, rgba(255,255,255,0.30) 1px, transparent 2px),
+      radial-gradient(circle at 50% 47%, rgba(255,255,255,0.28) 1px, transparent 2px);
+    background-size: 53px 53px, 67px 67px, 41px 41px, 73px 73px, 59px 59px;
+    opacity: 0.45;
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: overlay;
+  }
+
+  .app {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* ─── Top bar ───────────────────────────────────────── */
+  .top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 8px;
+    gap: 12px;
+  }
+  .icon-btn {
+    width: 48px; height: 48px;
+    border-radius: var(--r-full);
+    background: var(--surface);
+    color: var(--text);
+    border: none;
+    display: grid; place-items: center;
+    cursor: pointer;
+    box-shadow: var(--clay);
+    transition: transform 0.35s var(--ease-bounce), box-shadow 0.2s ease;
+  }
+  .icon-btn:active {
+    transform: translateY(2px) scale(0.94);
+    box-shadow: var(--clay-pressed);
+  }
+  .icon-btn svg {
+    width: 22px; height: 22px;
+    stroke-width: 2;
+  }
+  .top-spacer { flex: 1; }
+
+  /* ─── Stage (slime area) ────────────────────────────── */
+  .stage {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+  }
+  .stage-inner {
+    position: relative;
+    width: 280px; height: 280px;
+    display: grid;
+    place-items: center;
+  }
+  .ground-shadow {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 210px;
+    height: 32px;
+    background: radial-gradient(ellipse at center, rgba(180,130,90,0.35) 0%, rgba(180,130,90,0.18) 35%, transparent 70%);
+    filter: blur(2px);
+    pointer-events: none;
+    transition: transform 0.35s var(--ease-bounce);
+  }
+  .slime {
+    width: 280px; height: 280px;
+    position: relative;
+    display: grid; place-items: center;
+    animation: enter 0.6s var(--ease-bounce);
+  }
+  .slime svg {
+    width: 100%; height: 100%;
+    overflow: visible;
+    /* Warm-brown drop-shadow stack — matches the cream theme across all variants */
+    filter:
+      drop-shadow(0 14px 22px rgba(180, 130, 90, 0.32))
+      drop-shadow(0 6px 10px rgba(180, 130, 90, 0.20));
+  }
+  @keyframes enter {
+    0%   { transform: scale(0.7); opacity: 0; }
+    60%  { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+
+  /* ─── Bottom selector ───────────────────────────────── */
+  .selector {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding: 18px 28px 22px;
+    scrollbar-width: none;
+  }
+  .selector::-webkit-scrollbar { display: none; }
+  .selector-track {
+    display: inline-flex;
+    gap: 14px;
+    padding: 4px 2px;
+  }
+  .pick {
+    flex-shrink: 0;
+    width: 64px; height: 64px;
+    border-radius: var(--r-full);
+    background: var(--surface);
+    border: none;
+    cursor: pointer;
+    scroll-snap-align: center;
+    opacity: 0.72;
+    position: relative;
+    display: grid; place-items: center;
+    overflow: visible;
+    box-shadow: var(--clay);
+    transition: transform 0.35s var(--ease-bounce), opacity 0.25s ease, box-shadow 0.25s ease;
+  }
+  .pick:active {
+    transform: scale(0.94);
+  }
+  .pick.selected {
+    opacity: 1;
+    transform: scale(1.10);
+    box-shadow:
+      0 0 0 4px var(--accent),
+      var(--clay-strong);
+  }
+  .pick .thumb {
+    width: 44px; height: 44px;
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    font-size: 22px;
+    line-height: 1;
+    box-shadow:
+      inset 0 3px 4px rgba(255,255,255,0.5),
+      inset 0 -3px 5px rgba(180,140,100,0.18);
+  }
+  .pick .thumb svg { width: 30px; height: 30px; }
+</style>
+</head>
+<body>
+
+<main class="app">
+
+  <header class="top">
+    <button class="icon-btn" id="btn-settings" aria-label="设置">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>
+
+    <div class="top-spacer"></div>
+
+    <button class="icon-btn" id="btn-fav" aria-label="收藏">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+      </svg>
+    </button>
+
+    <button class="icon-btn" id="btn-mute" aria-label="静音">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <line x1="22" y1="9" x2="16" y2="15"/>
+        <line x1="16" y1="9" x2="22" y2="15"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="ground-shadow" id="ground-shadow"></div>
+      <div class="slime" id="slime">
+        <!-- First slime (#1 transparent blue) rendered here on init -->
+      </div>
+    </div>
+  </div>
+
+  <nav class="selector" id="selector">
+    <div class="selector-track" id="selector-track">
+      <!-- 9 picks populated by JS -->
+    </div>
+  </nav>
+
+</main>
+
+<script>
+'use strict';
+
+// ─── Slime catalog ─────────────────────────────────────────
+// id, name (中文), and color palette (used for placeholder thumbs).
+// SVG renderers will be added one at a time per the user's plan;
+// only `blue` is rendered with detail for now.
+const SLIMES = [
+  { id: 'blue',      name: '透明蓝',  primary: '#A8D5F2', secondary: '#FFFFFF' },
+  { id: 'poop',      name: '便便',    primary: '#A6753E', secondary: '#8B5A2A' },
+  { id: 'cat',       name: '小猫',    primary: '#FFE0B5', secondary: '#FFB8C8' },
+  { id: 'dog',       name: '小狗',    primary: '#F5DEB3', secondary: '#8B4513' },
+  { id: 'sheep',     name: '小羊',    primary: '#FFFFFF', secondary: '#E8D5B7' },
+  { id: 'cake',      name: '蛋糕',    primary: '#FFF5E1', secondary: '#FFB6C1' },
+  { id: 'croissant', name: '可颂',    primary: '#E8B973', secondary: '#C8923D' },
+  { id: 'burger',    name: '汉堡',    primary: '#E8B973', secondary: '#90C572' },
+  { id: 'donut',     name: '甜甜圈',  primary: '#E8B973', secondary: '#FFB6C1' },
+];
+
+let currentId = SLIMES[0].id;
+
+// ─── Center slime renderers ────────────────────────────────
+// Only `blue` is fleshed out per the user's plan. Other ids fall
+// through to a simple solid blob (uses primary/secondary colors) so
+// the swap still works visually until each is designed.
+const RENDERERS = {
+  blue:      renderBlueSlime,
+  poop:      renderPoopSlime,
+  cat:       renderCatSlime,
+  dog:       renderDogSlime,
+  sheep:     renderSheepSlime,
+  cake:      renderCakeSlime,
+  croissant: renderCroissantSlime,
+  burger:    renderBurgerSlime,
+  donut:     renderDonutSlime,
+};
+
+function renderSlime(id) {
+  const def = SLIMES.find(s => s.id === id) || SLIMES[0];
+  const slime = document.getElementById('slime');
+  slime.innerHTML = '';
+  slime.style.animation = 'none';
+  // Force reflow so the animation re-runs on every swap
+  void slime.offsetWidth;
+  slime.style.animation = '';
+  const fn = RENDERERS[id];
+  slime.innerHTML = fn ? fn() : renderPlaceholderSlime(def);
+}
+
+// #1 — 透明蓝:略带透明感,边缘水珠高光,内部小气泡
+function renderBlueSlime() {
+  return `
+    <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Main body fill: light translucent blue with white top highlight -->
+        <radialGradient id="blue-body" cx="38%" cy="32%" r="70%">
+          <stop offset="0%"  stop-color="#FFFFFF" stop-opacity="0.92"/>
+          <stop offset="35%" stop-color="#D4ECFB" stop-opacity="0.75"/>
+          <stop offset="75%" stop-color="#A8D5F2" stop-opacity="0.62"/>
+          <stop offset="100%" stop-color="#7CB9DD" stop-opacity="0.55"/>
+        </radialGradient>
+        <!-- Inner darkness ring for clay-like depth -->
+        <radialGradient id="blue-depth" cx="50%" cy="55%" r="55%">
+          <stop offset="0%"  stop-color="rgba(124,185,221,0)"/>
+          <stop offset="85%" stop-color="rgba(80,140,190,0)"/>
+          <stop offset="100%" stop-color="rgba(60,110,160,0.35)"/>
+        </radialGradient>
+        <!-- Inner bubble fill: subtle white -->
+        <radialGradient id="bubble" cx="35%" cy="30%" r="80%">
+          <stop offset="0%"  stop-color="#FFFFFF" stop-opacity="0.95"/>
+          <stop offset="100%" stop-color="#E8F4FB" stop-opacity="0.6"/>
+        </radialGradient>
+      </defs>
+
+      <!-- main blob -->
+      <ellipse cx="140" cy="148" rx="120" ry="108" fill="url(#blue-body)"/>
+      <!-- depth ring on lower half -->
+      <ellipse cx="140" cy="160" rx="120" ry="108" fill="url(#blue-depth)"/>
+
+      <!-- glossy top arc (specular streak) -->
+      <ellipse cx="108" cy="82" rx="52" ry="11" fill="rgba(255,255,255,0.85)"/>
+      <ellipse cx="92"  cy="75" rx="22" ry="5"  fill="rgba(255,255,255,0.95)"/>
+
+      <!-- internal bubbles, varying size/opacity -->
+      <circle cx="180" cy="125" r="9.5" fill="url(#bubble)"/>
+      <circle cx="180" cy="125" r="4"   fill="#FFFFFF" opacity="0.9"/>
+      <circle cx="115" cy="185" r="7"   fill="url(#bubble)"/>
+      <circle cx="115" cy="185" r="3"   fill="#FFFFFF" opacity="0.85"/>
+      <circle cx="168" cy="208" r="5.5" fill="url(#bubble)" opacity="0.9"/>
+      <circle cx="95"  cy="145" r="4.5" fill="url(#bubble)" opacity="0.8"/>
+      <circle cx="200" cy="175" r="3.5" fill="url(#bubble)" opacity="0.75"/>
+
+      <!-- bottom edge wet droplet hint -->
+      <ellipse cx="155" cy="245" rx="34" ry="6" fill="rgba(168,213,242,0.45)"/>
+    </svg>`;
+}
+
+// #2 — 便便:可爱风,3 层叠加 + 大眼睛笑脸
+function renderPoopSlime() {
+  return `
+    <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="poop-body" cx="35%" cy="28%" r="75%">
+          <stop offset="0%" stop-color="#E2B27C"/>
+          <stop offset="45%" stop-color="#A6753E"/>
+          <stop offset="100%" stop-color="#6E4824"/>
+        </radialGradient>
+        <radialGradient id="poop-hl" cx="50%" cy="18%" r="60%">
+          <stop offset="0%"  stop-color="rgba(255,240,210,0.55)"/>
+          <stop offset="100%" stop-color="rgba(255,240,210,0)"/>
+        </radialGradient>
+      </defs>
+      <!-- bottom (widest) layer -->
+      <ellipse cx="140" cy="215" rx="118" ry="46" fill="url(#poop-body)"/>
+      <ellipse cx="125" cy="194" rx="48" ry="9" fill="url(#poop-hl)"/>
+      <!-- middle layer -->
+      <ellipse cx="140" cy="160" rx="92" ry="38" fill="url(#poop-body)"/>
+      <ellipse cx="128" cy="140" rx="36" ry="8" fill="url(#poop-hl)"/>
+      <!-- third layer -->
+      <ellipse cx="140" cy="110" rx="66" ry="30" fill="url(#poop-body)"/>
+      <ellipse cx="132" cy="93" rx="26" ry="6" fill="url(#poop-hl)"/>
+      <!-- top tip -->
+      <ellipse cx="140" cy="72" rx="36" ry="20" fill="url(#poop-body)"/>
+      <ellipse cx="138" cy="60" rx="14" ry="4" fill="url(#poop-hl)"/>
+      <!-- pointy tip -->
+      <ellipse cx="140" cy="48" rx="14" ry="11" fill="url(#poop-body)"/>
+      <ellipse cx="140" cy="42" rx="5" ry="2.5" fill="url(#poop-hl)"/>
+      <!-- big eyes on middle layer -->
+      <ellipse cx="118" cy="158" rx="13" ry="15" fill="#FFFFFF"/>
+      <ellipse cx="162" cy="158" rx="13" ry="15" fill="#FFFFFF"/>
+      <circle cx="120" cy="162" r="7" fill="#2A1810"/>
+      <circle cx="164" cy="162" r="7" fill="#2A1810"/>
+      <circle cx="122" cy="158" r="2.5" fill="#FFFFFF"/>
+      <circle cx="166" cy="158" r="2.5" fill="#FFFFFF"/>
+      <!-- happy smile -->
+      <path d="M 120 178 Q 140 192 160 178" stroke="#2A1810" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+    </svg>`;
+}
+
+// #3 — 小猫:奶油色 + 三角耳 + 闭眼笑脸 ^_^ + 腮红
+function renderCatSlime() {
+  return `
+    <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="cat-body" cx="38%" cy="30%" r="72%">
+          <stop offset="0%"  stop-color="#FFF6E0"/>
+          <stop offset="55%" stop-color="#FFE0B5"/>
+          <stop offset="100%" stop-color="#D9B786"/>
+        </radialGradient>
+        <radialGradient id="cat-ear-in" cx="50%" cy="50%" r="60%">
+          <stop offset="0%"  stop-color="#FFD3DD"/>
+          <stop offset="100%" stop-color="#FFA8B8"/>
+        </radialGradient>
+      </defs>
+      <!-- ears (outer) -->
+      <path d="M 56 92 L 80 22 L 110 76 Z" fill="#D9B786"/>
+      <path d="M 224 92 L 200 22 L 170 76 Z" fill="#D9B786"/>
+      <!-- ears (inner pink) -->
+      <path d="M 70 88 L 82 40 L 100 76 Z" fill="url(#cat-ear-in)"/>
+      <path d="M 210 88 L 198 40 L 180 76 Z" fill="url(#cat-ear-in)"/>
+      <!-- body -->
+      <ellipse cx="140" cy="158" rx="118" ry="105" fill="url(#cat-body)"/>
+      <ellipse cx="108" cy="100" rx="42" ry="9" fill="rgba(255,255,255,0.55)"/>
+      <!-- closed-eye smiles ^_^ -->
+      <path d="M 90 148 Q 108 134 126 148"  stroke="#2A1810" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M 154 148 Q 172 134 190 148" stroke="#2A1810" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <!-- blush -->
+      <ellipse cx="78" cy="180" rx="15" ry="9" fill="#FFB8C8" opacity="0.78"/>
+      <ellipse cx="202" cy="180" rx="15" ry="9" fill="#FFB8C8" opacity="0.78"/>
+      <!-- nose (small pink triangle) -->
+      <path d="M 134 178 L 146 178 L 140 187 Z" fill="#FF7E9B"/>
+      <!-- three-petal mouth -->
+      <path d="M 140 187 L 140 202" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <path d="M 140 202 Q 125 215 116 202" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <path d="M 140 202 Q 155 215 164 202" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <!-- whiskers -->
+      <g stroke="rgba(120,90,60,0.55)" stroke-width="1.8" stroke-linecap="round">
+        <line x1="60"  y1="195" x2="105" y2="195"/>
+        <line x1="62"  y1="208" x2="105" y2="205"/>
+        <line x1="175" y1="195" x2="220" y2="195"/>
+        <line x1="175" y1="205" x2="218" y2="208"/>
+      </g>
+    </svg>`;
+}
+
+// #4 — 小狗:米色 + 棕垂耳 + 大眼睛 + 红舌头
+function renderDogSlime() {
+  return `
+    <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="dog-body" cx="38%" cy="30%" r="72%">
+          <stop offset="0%"  stop-color="#FFF6DC"/>
+          <stop offset="55%" stop-color="#F5DEB3"/>
+          <stop offset="100%" stop-color="#D2B07A"/>
+        </radialGradient>
+        <radialGradient id="dog-ear" cx="40%" cy="25%" r="80%">
+          <stop offset="0%"  stop-color="#A57440"/>
+          <stop offset="100%" stop-color="#5C3A1A"/>
+        </radialGradient>
+        <radialGradient id="dog-tongue" cx="40%" cy="30%" r="70%">
+          <stop offset="0%"  stop-color="#FF95A8"/>
+          <stop offset="100%" stop-color="#D9445F"/>
+        </radialGradient>
+      </defs>
+      <!-- floppy ears behind body -->
+      <ellipse cx="58"  cy="120" rx="28" ry="58" fill="url(#dog-ear)" transform="rotate(-15 58 120)"/>
+      <ellipse cx="222" cy="120" rx="28" ry="58" fill="url(#dog-ear)" transform="rotate(15 222 120)"/>
+      <!-- body -->
+      <ellipse cx="140" cy="158" rx="112" ry="102" fill="url(#dog-body)"/>
+      <ellipse cx="108" cy="100" rx="40" ry="9" fill="rgba(255,255,255,0.55)"/>
+      <!-- eyes (big round) -->
+      <circle cx="108" cy="150" r="14" fill="#2A1810"/>
+      <circle cx="172" cy="150" r="14" fill="#2A1810"/>
+      <circle cx="113" cy="146" r="4.2" fill="#FFFFFF"/>
+      <circle cx="177" cy="146" r="4.2" fill="#FFFFFF"/>
+      <!-- nose: rounded triangle -->
+      <path d="M 124 178 Q 140 172 156 178 Q 152 195 140 198 Q 128 195 124 178 Z" fill="#3A2614"/>
+      <circle cx="135" cy="182" r="2.6" fill="rgba(255,255,255,0.55)"/>
+      <!-- mouth + tongue line -->
+      <path d="M 140 198 L 140 212" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <!-- tongue sticking out -->
+      <ellipse cx="140" cy="228" rx="15" ry="13" fill="url(#dog-tongue)"/>
+      <path d="M 140 218 L 140 238" stroke="rgba(140,40,55,0.5)" stroke-width="1.8" fill="none"/>
+    </svg>`;
+}
+
+// #5 — 小羊:白色蓬松,周围云朵凸起 + 脸 + 黑色小圆眼
+function renderSheepSlime() {
+  return `
+    <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="sheep-wool" cx="38%" cy="28%" r="72%">
+          <stop offset="0%"  stop-color="#FFFFFF"/>
+          <stop offset="100%" stop-color="#E4E0D8"/>
+        </radialGradient>
+        <radialGradient id="sheep-face" cx="50%" cy="32%" r="70%">
+          <stop offset="0%"  stop-color="#F5DDB6"/>
+          <stop offset="100%" stop-color="#B89669"/>
+        </radialGradient>
+      </defs>
+      <!-- cloud bumps around perimeter, drawn first -->
+      <g fill="url(#sheep-wool)">
+        <circle cx="58"  cy="100" r="34"/>
+        <circle cx="58"  cy="178" r="34"/>
+        <circle cx="100" cy="226" r="32"/>
+        <circle cx="180" cy="226" r="32"/>
+        <circle cx="222" cy="178" r="34"/>
+        <circle cx="222" cy="100" r="34"/>
+        <circle cx="180" cy="56"  r="30"/>
+        <circle cx="100" cy="56"  r="30"/>
+        <circle cx="140" cy="60"  r="26"/>
+        <circle cx="140" cy="222" r="28"/>
+        <circle cx="70"  cy="142" r="32"/>
+        <circle cx="210" cy="142" r="32"/>
+      </g>
+      <!-- main body (also wool) -->
+      <ellipse cx="140" cy="148" rx="98" ry="92" fill="url(#sheep-wool)"/>
+      <!-- ears (small floppy) -->
+      <ellipse cx="84"  cy="148" rx="12" ry="22" fill="url(#sheep-face)" transform="rotate(-28 84 148)"/>
+      <ellipse cx="196" cy="148" rx="12" ry="22" fill="url(#sheep-face)" transform="rotate(28 196 148)"/>
+      <!-- face oval -->
+      <ellipse cx="140" cy="158" rx="62" ry="55" fill="url(#sheep-face)"/>
+      <ellipse cx="122" cy="128" rx="22" ry="5" fill="rgba(255,255,255,0.55)"/>
+      <!-- forelock curl on forehead -->
+      <circle cx="125" cy="122" r="11" fill="url(#sheep-wool)"/>
+      <circle cx="142" cy="118" r="10" fill="url(#sheep-wool)"/>
+      <circle cx="158" cy="124" r="11" fill="url(#sheep-wool)"/>
+      <!-- eyes -->
+      <circle cx="120" cy="160" r="5.5" fill="#2A1810"/>
+      <circle cx="160" cy="160" r="5.5" fill="#2A1810"/>
+      <circle cx="122" cy="158" r="1.6" fill="#FFFFFF"/>
+      <circle cx="162" cy="158" r="1.6" fill="#FFFFFF"/>
+      <!-- blush -->
+      <ellipse cx="100" cy="180" rx="11" ry="7" fill="#FFB8C8" opacity="0.65"/>
+      <ellipse cx="180" cy="180" rx="11" ry="7" fill="#FFB8C8" opacity="0.65"/>
+      <!-- nose -->
+      <path d="M 134 184 L 146 184 L 140 191 Z" fill="#5C3A1A"/>
+      <!-- mouth -->
+      <path d="M 140 191 Q 130 200 122 196" stroke="#5C3A1A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+      <path d="M 140 191 Q 150 200 158 196" stroke="#5C3A1A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    </svg>`;
+}
+
+// #6 — 草莓蛋糕:蛋糕底 + 粉色波浪奶油 + 草莓 + 奶油花
+function renderCakeSlime() {
+  return `
+    <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="cake-base" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"  stop-color="#FFF8E8"/>
+          <stop offset="100%" stop-color="#E0CCA4"/>
+        </linearGradient>
+        <linearGradient id="cake-cream" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"  stop-color="#FFE5EE"/>
+          <stop offset="100%" stop-color="#FFA6BC"/>
+        </linearGradient>
+        <radialGradient id="cake-berry" cx="32%" cy="28%" r="78%">
+          <stop offset="0%"  stop-color="#FF8A9E"/>
+          <stop offset="55%" stop-color="#E0405E"/>
+          <stop offset="100%" stop-color="#9C1F38"/>
+        </radialGradient>
+      </defs>
+      <!-- cake base (bottom rounded slab) -->
+      <path d="M 30 200 Q 30 252 80 254 L 200 254 Q 250 252 250 200 L 250 150 L 30 150 Z" fill="url(#cake-base)"/>
+      <ellipse cx="105" cy="180" rx="40" ry="6" fill="rgba(255,255,255,0.5)"/>
+      <!-- frosting layer with wavy bottom edge -->
+      <path d="M 30 150
+               Q 50 168 70 150
+               Q 90 168 110 150
+               Q 130 168 150 150
+               Q 170 168 190 150
+               Q 210 168 230 150
+               Q 250 168 250 150
+               L 250 95
+               Q 250 50, 195 50
+               L 85 50
+               Q 30 50, 30 95 Z"
+            fill="url(#cake-cream)"/>
+      <ellipse cx="105" cy="80" rx="48" ry="9" fill="rgba(255,255,255,0.6)"/>
+      <!-- cream rosettes on top -->
+      <g fill="rgba(255,255,255,0.92)">
+        <circle cx="75"  cy="68" r="11"/>
+        <circle cx="205" cy="68" r="11"/>
+      </g>
+      <g fill="rgba(255,230,238,0.85)">
+        <circle cx="75"  cy="64" r="5"/>
+        <circle cx="205" cy="64" r="5"/>
+      </g>
+      <!-- strawberry on top center -->
+      <ellipse cx="140" cy="38" rx="22" ry="28" fill="url(#cake-berry)"/>
+      <ellipse cx="132" cy="28" rx="8" ry="5" fill="rgba(255,255,255,0.55)"/>
+      <!-- strawberry seeds -->
+      <circle cx="133" cy="26" r="1.4" fill="#FFEFB8"/>
+      <circle cx="146" cy="30" r="1.4" fill="#FFEFB8"/>
+      <circle cx="128" cy="40" r="1.4" fill="#FFEFB8"/>
+      <circle cx="148" cy="44" r="1.4" fill="#FFEFB8"/>
+      <circle cx="138" cy="48" r="1.4" fill="#FFEFB8"/>
+      <circle cx="142" cy="36" r="1.4" fill="#FFEFB8"/>
+      <!-- strawberry leaves -->
+      <path d="M 122 12 L 140 16 L 158 12 L 152 22 L 140 26 L 128 22 Z" fill="#7AB770"/>
+      <path d="M 140 8 L 140 18" stroke="#5A8B52" stroke-width="2" stroke-linecap="round"/>
+      <!-- eyes on base -->
+      <circle cx="110" cy="208" r="8" fill="#2A1810"/>
+      <circle cx="170" cy="208" r="8" fill="#2A1810"/>
+      <circle cx="113" cy="205" r="2.5" fill="#FFFFFF"/>
+      <circle cx="173" cy="205" r="2.5" fill="#FFFFFF"/>
+      <!-- smile -->
+      <path d="M 128 226 Q 140 236 152 226" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    </svg>`;
+}
+
+// #7 — 可颂面包:金黄渐变 + 横向螺旋纹路 + 顶部高光带
+function renderCroissantSlime() {
+  return `
+    <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="cro-body" cx="35%" cy="25%" r="80%">
+          <stop offset="0%"  stop-color="#FFE39A"/>
+          <stop offset="45%" stop-color="#E8B973"/>
+          <stop offset="100%" stop-color="#8C5A22"/>
+        </radialGradient>
+        <linearGradient id="cro-tip" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"  stop-color="#E8B973"/>
+          <stop offset="100%" stop-color="#A87838"/>
+        </linearGradient>
+      </defs>
+      <!-- crescent body via wide ellipse -->
+      <ellipse cx="140" cy="160" rx="118" ry="78" fill="url(#cro-body)"/>
+      <!-- crescent tapered ends (left + right) -->
+      <ellipse cx="30"  cy="158" rx="22" ry="28" fill="url(#cro-tip)" transform="rotate(-15 30 158)"/>
+      <ellipse cx="250" cy="158" rx="22" ry="28" fill="url(#cro-tip)" transform="rotate(15 250 158)"/>
+      <!-- horizontal spiral layers -->
+      <g stroke="rgba(96,55,18,0.45)" stroke-width="2.6" fill="none" stroke-linecap="round">
+        <path d="M 35 130 Q 90 108 140 115 Q 200 110 248 132"/>
+        <path d="M 30 160 Q 80 138 140 145 Q 200 140 252 162"/>
+        <path d="M 35 190 Q 90 175 140 178 Q 200 175 248 195"/>
+        <path d="M 50 215 Q 100 205 140 208 Q 195 205 235 220"/>
+        <path d="M 70 108 Q 130 88 200 98"/>
+      </g>
+      <!-- top highlight band -->
+      <ellipse cx="140" cy="105" rx="80" ry="8" fill="rgba(255,250,220,0.6)"/>
+      <ellipse cx="115" cy="102" rx="32" ry="3" fill="rgba(255,250,220,0.85)"/>
+      <!-- eyes -->
+      <circle cx="112" cy="170" r="8.5" fill="#2A1810"/>
+      <circle cx="168" cy="170" r="8.5" fill="#2A1810"/>
+      <circle cx="115" cy="167" r="2.8" fill="#FFFFFF"/>
+      <circle cx="171" cy="167" r="2.8" fill="#FFFFFF"/>
+      <!-- smile -->
+      <path d="M 124 192 Q 140 203 156 192" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <!-- cheek blush -->
+      <ellipse cx="82"  cy="182" rx="13" ry="7" fill="#E89870" opacity="0.55"/>
+      <ellipse cx="198" cy="182" rx="13" ry="7" fill="#E89870" opacity="0.55"/>
+    </svg>`;
+}
+
+// #8 — 汉堡:顶面包(芝麻)+ 生菜波浪 + 肉饼 + 底面包(脸)
+function renderBurgerSlime() {
+  return `
+    <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="bun-top" cx="50%" cy="28%" r="65%">
+          <stop offset="0%"  stop-color="#FFE3A4"/>
+          <stop offset="55%" stop-color="#E8B973"/>
+          <stop offset="100%" stop-color="#A87838"/>
+        </radialGradient>
+        <linearGradient id="bun-bot" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"  stop-color="#E8B973"/>
+          <stop offset="100%" stop-color="#A06E30"/>
+        </linearGradient>
+        <linearGradient id="lettuce" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"  stop-color="#B6E59C"/>
+          <stop offset="100%" stop-color="#5FA050"/>
+        </linearGradient>
+        <linearGradient id="patty" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%"  stop-color="#8B5226"/>
+          <stop offset="100%" stop-color="#4A2810"/>
+        </linearGradient>
+      </defs>
+      <!-- bottom bun dome -->
+      <path d="M 30 222 Q 30 258 70 260 L 210 260 Q 250 258 250 222 L 250 215 L 30 215 Z" fill="url(#bun-bot)"/>
+      <!-- patty -->
+      <rect x="26" y="188" width="228" height="32" rx="10" fill="url(#patty)"/>
+      <!-- patty texture spots -->
+      <ellipse cx="80"  cy="202" rx="6" ry="3" fill="rgba(0,0,0,0.18)"/>
+      <ellipse cx="180" cy="208" rx="6" ry="3" fill="rgba(0,0,0,0.18)"/>
+      <ellipse cx="130" cy="200" rx="5" ry="2.5" fill="rgba(0,0,0,0.18)"/>
+      <!-- lettuce wavy strip -->
+      <path d="M 20 176
+               Q 32 158 50 174
+               Q 68 156 86 174
+               Q 104 156 122 174
+               Q 140 156 158 174
+               Q 176 156 194 174
+               Q 212 156 230 174
+               Q 248 158 260 178
+               L 260 192
+               L 20 192 Z" fill="url(#lettuce)"/>
+      <!-- top bun (large dome) -->
+      <path d="M 28 168 Q 28 60 140 60 Q 252 60 252 168 Z" fill="url(#bun-top)"/>
+      <!-- top bun highlight -->
+      <ellipse cx="108" cy="92" rx="52" ry="14" fill="rgba(255,250,220,0.55)"/>
+      <ellipse cx="85"  cy="86" rx="20" ry="5" fill="rgba(255,250,220,0.85)"/>
+      <!-- sesame seeds -->
+      <g fill="#FFF5DC">
+        <ellipse cx="88"  cy="118" rx="3.2" ry="5.6" transform="rotate(-12 88 118)"/>
+        <ellipse cx="138" cy="92"  rx="3.2" ry="5.6"/>
+        <ellipse cx="186" cy="120" rx="3.2" ry="5.6" transform="rotate(20 186 120)"/>
+        <ellipse cx="114" cy="140" rx="3.2" ry="5.6" transform="rotate(-8 114 140)"/>
+        <ellipse cx="208" cy="150" rx="3.2" ry="5.6" transform="rotate(18 208 150)"/>
+        <ellipse cx="160" cy="138" rx="3.2" ry="5.6" transform="rotate(-25 160 138)"/>
+      </g>
+      <!-- face on bottom bun -->
+      <circle cx="105" cy="240" r="7" fill="#2A1810"/>
+      <circle cx="175" cy="240" r="7" fill="#2A1810"/>
+      <circle cx="107" cy="237" r="2.2" fill="#FFFFFF"/>
+      <circle cx="177" cy="237" r="2.2" fill="#FFFFFF"/>
+      <path d="M 128 250 Q 140 258 152 250" stroke="#2A1810" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+    </svg>`;
+}
+
+// #9 — 甜甜圈:面包环 + 粉色淋面(带不规则下垂) + 彩虹 sprinkles + 中心洞
+function renderDonutSlime() {
+  return `
+    <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="donut-bread" cx="50%" cy="50%" r="60%">
+          <stop offset="0%"  stop-color="#F0C68D"/>
+          <stop offset="60%" stop-color="#D2A062"/>
+          <stop offset="100%" stop-color="#8C5A22"/>
+        </radialGradient>
+        <radialGradient id="donut-glaze" cx="40%" cy="28%" r="80%">
+          <stop offset="0%"  stop-color="#FFEAEF"/>
+          <stop offset="45%" stop-color="#FFB6C1"/>
+          <stop offset="100%" stop-color="#D9709A"/>
+        </radialGradient>
+      </defs>
+      <!-- bread ring (outer + hole) via evenodd -->
+      <path fill-rule="evenodd" fill="url(#donut-bread)"
+            d="M 140 38
+               a 102 102 0 1 0 0.1 0 Z
+               M 140 118
+               a 28 28 0 1 0 0.1 0 Z"/>
+      <!-- glaze on top (drips down on edges) -->
+      <path fill-rule="evenodd" fill="url(#donut-glaze)"
+            d="M 140 46
+               a 94 94 0 0 1 94 94
+               q 0 6, -4 13
+               q -8 8, -22 4
+               q -8 -4, -16 4
+               q -6 8, -18 0
+               q -10 -2, -22 6
+               q -12 4, -22 -2
+               q -14 4, -24 -4
+               q -10 -6, -22 0
+               q -14 0, -22 -10
+               q -3 -6, -3 -11
+               a 94 94 0 0 1 81 -94 Z
+               M 140 118
+               a 28 28 0 1 0 0.1 0 Z"/>
+      <!-- glaze shine -->
+      <ellipse cx="105" cy="75" rx="42" ry="9" fill="rgba(255,255,255,0.55)"/>
+      <!-- rainbow sprinkles -->
+      <g>
+        <ellipse cx="98"  cy="78"  rx="2.8" ry="6.5" fill="#FF6B9D" transform="rotate(38 98 78)"/>
+        <ellipse cx="128" cy="62"  rx="2.8" ry="6.5" fill="#5BC0E8" transform="rotate(-18 128 62)"/>
+        <ellipse cx="168" cy="66"  rx="2.8" ry="6.5" fill="#FFD656" transform="rotate(12 168 66)"/>
+        <ellipse cx="200" cy="92"  rx="2.8" ry="6.5" fill="#90C572" transform="rotate(50 200 92)"/>
+        <ellipse cx="82"  cy="120" rx="2.8" ry="6.5" fill="#B89AE6" transform="rotate(62 82 120)"/>
+        <ellipse cx="220" cy="155" rx="2.8" ry="6.5" fill="#FF8B6B" transform="rotate(-28 220 155)"/>
+        <ellipse cx="65"  cy="160" rx="2.8" ry="6.5" fill="#FFD656" transform="rotate(22 65 160)"/>
+        <ellipse cx="50"  cy="200" rx="2.8" ry="6.5" fill="#5BC0E8" transform="rotate(-40 50 200)"/>
+      </g>
+      <!-- face below the hole on the bottom-left arc -->
+      <circle cx="105" cy="190" r="7.5" fill="#2A1810"/>
+      <circle cx="175" cy="190" r="7.5" fill="#2A1810"/>
+      <circle cx="107" cy="187" r="2.4" fill="#FFFFFF"/>
+      <circle cx="177" cy="187" r="2.4" fill="#FFFFFF"/>
+      <!-- smile -->
+      <path d="M 122 215 Q 140 227 158 215" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+      <!-- blush -->
+      <ellipse cx="80"  cy="208" rx="13" ry="7" fill="#FF95B0" opacity="0.55"/>
+      <ellipse cx="200" cy="208" rx="13" ry="7" fill="#FF95B0" opacity="0.55"/>
+    </svg>`;
+}
+
+// Placeholder slime: simple round blob in the variant's primary color.
+// Replaces this when each variant gets its detailed SVG.
+function renderPlaceholderSlime(def) {
+  return `
+    <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="ph-body" cx="38%" cy="32%" r="70%">
+          <stop offset="0%"  stop-color="#FFFFFF" stop-opacity="0.85"/>
+          <stop offset="55%" stop-color="${def.primary}" stop-opacity="0.95"/>
+          <stop offset="100%" stop-color="${def.secondary}" stop-opacity="1"/>
+        </radialGradient>
+      </defs>
+      <ellipse cx="140" cy="148" rx="120" ry="108" fill="url(#ph-body)"/>
+      <ellipse cx="108" cy="80"  rx="44" ry="9" fill="rgba(255,255,255,0.7)"/>
+      <text x="50%" y="58%" text-anchor="middle" fill="rgba(92,74,58,0.4)"
+            font-size="14" font-weight="700" letter-spacing="2">
+        ${def.name}
+      </text>
+    </svg>`;
+}
+
+// ─── Selector thumbs ───────────────────────────────────────
+// Each pick shows a tinted circle in the slime's primary color.
+// Detailed mini-versions will replace these once each SVG is designed.
+function renderThumb(def) {
+  return `
+    <div class="thumb" style="
+      background: radial-gradient(circle at 35% 30%, #FFFFFF, ${def.primary} 80%);
+    "></div>
+  `;
+}
+
+// ─── Build selector + wire up ──────────────────────────────
+const track = document.getElementById('selector-track');
+SLIMES.forEach(def => {
+  const btn = document.createElement('button');
+  btn.className = 'pick' + (def.id === currentId ? ' selected' : '');
+  btn.dataset.id = def.id;
+  btn.setAttribute('aria-label', def.name);
+  btn.innerHTML = renderThumb(def);
+  btn.addEventListener('click', () => selectSlime(def.id));
+  track.appendChild(btn);
+});
+
+function selectSlime(id) {
+  if (id === currentId) return;
+  currentId = id;
+  document.querySelectorAll('.pick').forEach(el => {
+    el.classList.toggle('selected', el.dataset.id === id);
+  });
+  renderSlime(id);
+  console.log('[slime-clay] selected:', id);
+}
+
+// ─── Top buttons (just log for now) ────────────────────────
+document.getElementById('btn-settings').addEventListener('click', () => console.log('[slime-clay] settings clicked'));
+document.getElementById('btn-fav').addEventListener('click', () => console.log('[slime-clay] favorites clicked'));
+document.getElementById('btn-mute').addEventListener('click', () => console.log('[slime-clay] mute clicked'));
+
+// ─── Init ──────────────────────────────────────────────────
+renderSlime(currentId);
+console.log('[slime-clay] scaffold ready. selected:', currentId);
+</script>
+</body>
+</html>

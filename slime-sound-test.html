@@ -1,0 +1,1204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#FFF8F0" />
+<title>Slime · Clay + Sound</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --bg-top: #FFF8F0;
+    --bg-bot: #FFE8D6;
+    --surface: #FFFFFF;
+    --surface-soft: #FFF1E0;
+    --text: #5C4A3A;
+    --text-soft: #A08775;
+    --text-hint: #D4B8A0;
+    --accent: #FFB088;
+    --accent-hover: #FF9166;
+    --success: #A8D5A0;
+    --r-sm: 16px;
+    --r-md: 24px;
+    --r-lg: 32px;
+    --r-full: 9999px;
+    --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+    --clay:
+      inset 0 4px 8px rgba(255, 255, 255, 0.55),
+      inset 0 -4px 8px rgba(180, 140, 100, 0.15),
+      0 12px 24px -4px rgba(180, 130, 90, 0.25),
+      0 4px 8px -2px rgba(180, 130, 90, 0.15);
+    --clay-pressed:
+      inset 0 -4px 8px rgba(255, 255, 255, 0.4),
+      inset 0 4px 10px rgba(180, 140, 100, 0.28),
+      0 2px 4px -1px rgba(180, 130, 90, 0.18);
+    --clay-strong:
+      inset 0 6px 10px rgba(255, 255, 255, 0.65),
+      inset 0 -5px 10px rgba(180, 140, 100, 0.18),
+      0 16px 32px -4px rgba(180, 130, 90, 0.32),
+      0 6px 12px -2px rgba(180, 130, 90, 0.18);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+  body {
+    font-family: 'Nunito', 'Quicksand', "PingFang SC", -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 600;
+    color: var(--text);
+    background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bot) 100%);
+    user-select: none; -webkit-user-select: none;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(circle at 17% 23%, rgba(255,255,255,0.45) 1px, transparent 2px),
+      radial-gradient(circle at 62% 71%, rgba(255,255,255,0.35) 1px, transparent 2px),
+      radial-gradient(circle at 81% 12%, rgba(255,255,255,0.40) 1px, transparent 2px),
+      radial-gradient(circle at 33% 82%, rgba(255,255,255,0.30) 1px, transparent 2px),
+      radial-gradient(circle at 50% 47%, rgba(255,255,255,0.28) 1px, transparent 2px);
+    background-size: 53px 53px, 67px 67px, 41px 41px, 73px 73px, 59px 59px;
+    opacity: 0.45;
+    pointer-events: none;
+    z-index: 0;
+    mix-blend-mode: overlay;
+  }
+
+  .app {
+    position: relative; z-index: 1;
+    width: 100%; height: 100%;
+    max-width: 480px;
+    margin: 0 auto;
+    display: flex; flex-direction: column;
+    padding-top: env(safe-area-inset-top, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* Top bar */
+  .top {
+    display: flex; align-items: center; gap: 10px;
+    padding: 16px 20px 8px;
+  }
+  .icon-btn {
+    width: 48px; height: 48px;
+    border-radius: var(--r-full);
+    background: var(--surface);
+    color: var(--text);
+    border: none;
+    display: grid; place-items: center;
+    cursor: pointer;
+    box-shadow: var(--clay);
+    transition: transform 0.35s var(--ease-bounce), box-shadow 0.2s ease, color 0.2s ease;
+  }
+  .icon-btn:active {
+    transform: translateY(2px) scale(0.94);
+    box-shadow: var(--clay-pressed);
+  }
+  .icon-btn.toggled {
+    color: var(--accent-hover);
+    background: var(--surface-soft);
+  }
+  .icon-btn svg { width: 22px; height: 22px; stroke-width: 2; }
+  .top-spacer { flex: 1; }
+
+  /* Stage */
+  .stage {
+    flex: 1;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 0;
+  }
+  .stage-inner {
+    position: relative;
+    width: 280px; height: 280px;
+    display: grid; place-items: center;
+  }
+  .ground-shadow {
+    position: absolute;
+    bottom: 4px; left: 50%;
+    transform: translateX(-50%) scaleX(1);
+    width: 210px; height: 32px;
+    background: radial-gradient(ellipse at center, rgba(180,130,90,0.35) 0%, rgba(180,130,90,0.18) 35%, transparent 70%);
+    filter: blur(2px);
+    pointer-events: none;
+    transition: transform 0.18s var(--ease-bounce), opacity 0.18s ease;
+  }
+  .slime {
+    width: 280px; height: 280px;
+    position: relative;
+    display: grid; place-items: center;
+    cursor: grab;
+    animation: enter 0.6s var(--ease-bounce);
+    transition: transform 0.18s var(--ease-bounce);
+    will-change: transform;
+  }
+  .slime:active { cursor: grabbing; }
+  .slime svg {
+    width: 100%; height: 100%;
+    overflow: visible;
+    filter:
+      drop-shadow(0 14px 22px rgba(180, 130, 90, 0.32))
+      drop-shadow(0 6px 10px rgba(180, 130, 90, 0.20));
+    pointer-events: none;
+  }
+  @keyframes enter {
+    0%   { transform: scale(0.7); opacity: 0; }
+    60%  { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+
+  /* Selector */
+  .selector {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding: 18px 28px 22px;
+    scrollbar-width: none;
+  }
+  .selector::-webkit-scrollbar { display: none; }
+  .selector-track {
+    display: inline-flex;
+    gap: 14px;
+    padding: 4px 2px;
+  }
+  .pick {
+    flex-shrink: 0;
+    width: 64px; height: 64px;
+    border-radius: var(--r-full);
+    background: var(--surface);
+    border: none;
+    cursor: pointer;
+    scroll-snap-align: center;
+    opacity: 0.72;
+    position: relative;
+    display: grid; place-items: center;
+    overflow: visible;
+    box-shadow: var(--clay);
+    transition: transform 0.35s var(--ease-bounce), opacity 0.25s ease, box-shadow 0.25s ease;
+  }
+  .pick:active { transform: scale(0.94); }
+  .pick.selected {
+    opacity: 1;
+    transform: scale(1.10);
+    box-shadow: 0 0 0 4px var(--accent), var(--clay-strong);
+  }
+  .pick .thumb {
+    width: 44px; height: 44px;
+    border-radius: var(--r-full);
+    display: grid; place-items: center;
+    box-shadow:
+      inset 0 3px 4px rgba(255,255,255,0.5),
+      inset 0 -3px 5px rgba(180,140,100,0.18);
+  }
+
+  /* Settings sheet — slides up from bottom */
+  .sheet-bg {
+    position: fixed; inset: 0;
+    background: rgba(92, 74, 58, 0.18);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.25s ease;
+    z-index: 50;
+  }
+  .sheet-bg.show { opacity: 1; pointer-events: auto; }
+  .sheet {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    width: 100%; max-width: 480px;
+    transform: translate(-50%, 100%);
+    background: linear-gradient(180deg, #FFFCF6 0%, #FFF1E0 100%);
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+    box-shadow: 0 -16px 40px rgba(180, 130, 90, 0.25);
+    padding: 24px 24px calc(28px + env(safe-area-inset-bottom, 0px));
+    transition: transform 0.4s var(--ease-bounce);
+    z-index: 60;
+  }
+  .sheet.show { transform: translate(-50%, 0); }
+  .sheet-handle {
+    width: 44px; height: 5px;
+    background: rgba(180, 130, 90, 0.3);
+    border-radius: var(--r-full);
+    margin: 0 auto 16px;
+  }
+  .sheet h3 {
+    font-size: 18px; font-weight: 800;
+    margin-bottom: 18px;
+    letter-spacing: 0.5px;
+  }
+  .setting-row {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 18px;
+    font-size: 14px; font-weight: 700;
+  }
+  .setting-row > label { min-width: 76px; color: var(--text-soft); }
+  .setting-row > input[type="range"] {
+    flex: 1; height: 5px;
+    accent-color: var(--accent);
+  }
+  .setting-row .val {
+    min-width: 46px; text-align: right;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+  .setting-row .toggle {
+    width: 44px; height: 26px;
+    border-radius: var(--r-full);
+    background: var(--surface-soft);
+    border: none;
+    position: relative;
+    cursor: pointer;
+    box-shadow: var(--clay-pressed);
+    transition: background 0.2s;
+  }
+  .setting-row .toggle::after {
+    content: ''; position: absolute;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: white;
+    top: 3px; left: 3px;
+    box-shadow: 0 2px 4px rgba(180, 130, 90, 0.25);
+    transition: transform 0.25s var(--ease-bounce);
+  }
+  .setting-row .toggle.on { background: var(--accent); }
+  .setting-row .toggle.on::after { transform: translateX(18px); }
+  .setting-row .status {
+    flex: 1; text-align: right;
+    font-size: 12px; font-weight: 700;
+    color: var(--text-soft);
+  }
+  .setting-row .status.ok    { color: #5b8c5a; }
+  .setting-row .status.warn  { color: #c47a3a; }
+
+  /* Loading mask */
+  .loading {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255, 248, 240, 0.96);
+    z-index: 100;
+    font-size: 13px; letter-spacing: 4px; color: var(--text-soft);
+    transition: opacity 0.3s;
+  }
+  .loading.hidden { opacity: 0; pointer-events: none; }
+</style>
+</head>
+<body>
+
+<main class="app">
+
+  <header class="top">
+    <button class="icon-btn" id="btn-settings" aria-label="设置">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+    </button>
+
+    <div class="top-spacer"></div>
+
+    <button class="icon-btn" id="btn-ambient" aria-label="背景音">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17.5 19a4.5 4.5 0 1 0-1.41-8.775 5.5 5.5 0 0 0-10.802 1.04A4 4 0 0 0 6.5 19h11Z"/>
+      </svg>
+    </button>
+
+    <button class="icon-btn" id="btn-mute" aria-label="静音">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" id="mute-icon">
+        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+        <path d="M15.54 8.46a5 5 0 0 1 0 7.07" id="wave-1"/>
+        <path d="M19.07 4.93a10 10 0 0 1 0 14.14" id="wave-2"/>
+      </svg>
+    </button>
+  </header>
+
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="ground-shadow" id="ground-shadow"></div>
+      <div class="slime" id="slime"></div>
+    </div>
+  </div>
+
+  <nav class="selector" id="selector">
+    <div class="selector-track" id="selector-track"></div>
+  </nav>
+
+</main>
+
+<!-- Settings sheet (master volume + ambient + load status) -->
+<div class="sheet-bg" id="sheet-bg"></div>
+<div class="sheet" id="sheet">
+  <div class="sheet-handle"></div>
+  <h3>设置</h3>
+  <div class="setting-row">
+    <label>主音量</label>
+    <input type="range" id="master" min="0" max="100" value="70" />
+    <span class="val" id="master-val">70%</span>
+  </div>
+  <div class="setting-row">
+    <label>背景音</label>
+    <button class="toggle" id="ambient-toggle" aria-label="切换背景音"></button>
+    <span class="status" id="ambient-status">关</span>
+  </div>
+  <div class="setting-row">
+    <label>音效源</label>
+    <span class="status" id="s-load">加载中…</span>
+  </div>
+</div>
+
+<div class="loading" id="loading">加载音效中…</div>
+
+<script>
+'use strict';
+
+// =============================================================
+// SlimeSoundEngine — Web Audio API (same engine as before)
+// =============================================================
+class SlimeSoundEngine {
+  constructor() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.audioCtx = new AC();
+
+    this.inputBus = this.audioCtx.createGain();
+    this.inputBus.gain.value = 1;
+
+    this.lowpass = this.audioCtx.createBiquadFilter();
+    this.lowpass.type = 'lowpass';
+    this.lowpass.frequency.value = 8000;
+
+    this.convolver = this.audioCtx.createConvolver();
+    this.convolver.buffer = this._makeImpulseResponse(0.3, 2);
+
+    this.dryGain = this.audioCtx.createGain();
+    this.dryGain.gain.value = 0.88;
+    this.wetGain = this.audioCtx.createGain();
+    this.wetGain.gain.value = 0.12;
+
+    this.master = this.audioCtx.createGain();
+    this.master.gain.value = 0.7;
+
+    this.inputBus.connect(this.lowpass);
+    this.lowpass.connect(this.dryGain);
+    this.lowpass.connect(this.convolver);
+    this.convolver.connect(this.wetGain);
+    this.dryGain.connect(this.master);
+    this.wetGain.connect(this.master);
+    this.master.connect(this.audioCtx.destination);
+
+    this.buffers = { press: [], release: [], stretch: [], ambient: [] };
+    this.lastPlayed = { press: [], release: [] };
+    this.loadStatus = [];
+
+    this.pressing = false;
+    this.currentIntensity = 0;
+    this.pressTimer = null;
+    this.stretchSource = null; this.stretchGain = null; this.stretchActive = false;
+    this.ambientSource = null; this.ambientGain = null;
+
+    const unlock = () => {
+      if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
+      document.removeEventListener('touchstart', unlock);
+      document.removeEventListener('mousedown', unlock);
+    };
+    document.addEventListener('touchstart', unlock, { once: true, passive: true });
+    document.addEventListener('mousedown', unlock, { once: true });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.stopAll();
+    });
+  }
+
+  _makeImpulseResponse(duration = 0.3, decay = 2) {
+    const sr = this.audioCtx.sampleRate;
+    const length = Math.max(1, Math.floor(duration * sr));
+    const ir = this.audioCtx.createBuffer(2, length, sr);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = ir.getChannelData(ch);
+      for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+    }
+    return ir;
+  }
+
+  _makeSyntheticBuffer(kind, duration) {
+    const sr = this.audioCtx.sampleRate;
+    const len = Math.max(1, Math.floor(duration * sr));
+    const buf = this.audioCtx.createBuffer(1, len, sr);
+    const data = buf.getChannelData(0);
+    if (kind === 'press') {
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i/len, 2.5) * 0.55;
+      this._smoothBuffer(data, 4);
+    } else if (kind === 'release') {
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i/len, 3.2) * 0.85;
+      this._smoothBuffer(data, 2);
+    } else if (kind === 'stretch') {
+      for (let i = 0; i < len; i++) {
+        const flutter = 0.65 + 0.35 * Math.sin(2 * Math.PI * 3.5 * i / sr);
+        data[i] = (Math.random() * 2 - 1) * flutter * 0.30;
+      }
+      this._smoothBuffer(data, 5);
+    } else {
+      for (let i = 0; i < len; i++) {
+        const mod = 0.5 + 0.5 * Math.sin(2 * Math.PI * 0.3 * i / sr);
+        data[i] = (Math.random() * 2 - 1) * mod * 0.42;
+      }
+      this._smoothBuffer(data, 10);
+    }
+    return buf;
+  }
+
+  _smoothBuffer(data, passes) {
+    for (let p = 0; p < passes; p++) {
+      let prev = data[0];
+      for (let i = 1; i < data.length - 1; i++) {
+        const cur = data[i];
+        data[i] = (prev + cur + data[i + 1]) / 3;
+        prev = cur;
+      }
+    }
+  }
+
+  async _loadOne(url, fallbackKind, fallbackDuration) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('http ' + res.status);
+      const arr = await res.arrayBuffer();
+      const buf = await this.audioCtx.decodeAudioData(arr);
+      this.loadStatus.push({ url, ok: true });
+      return buf;
+    } catch (e) {
+      console.warn(`[slime-sound] ${url} missing — using synthetic ${fallbackKind}`, e);
+      this.loadStatus.push({ url, ok: false, error: String(e) });
+      return this._makeSyntheticBuffer(fallbackKind, fallbackDuration);
+    }
+  }
+
+  async preloadAll() {
+    const pj = [];
+    for (let i = 1; i <= 5; i++) pj.push(this._loadOne(`sounds/press/press_0${i}.wav`, 'press', 0.4 + Math.random()*0.3));
+    const rj = [];
+    for (let i = 1; i <= 4; i++) rj.push(this._loadOne(`sounds/release/release_0${i}.wav`, 'release', 0.15 + Math.random()*0.1));
+    const sj = [];
+    for (let i = 1; i <= 3; i++) sj.push(this._loadOne(`sounds/stretch/stretch_0${i}.wav`, 'stretch', 1.5));
+    const aj = this._loadOne(`sounds/ambient/ambient_loop.wav`, 'ambient', 10);
+    const [press, release, stretch, ambient] = await Promise.all([
+      Promise.all(pj), Promise.all(rj), Promise.all(sj), aj,
+    ]);
+    this.buffers.press = press; this.buffers.release = release;
+    this.buffers.stretch = stretch; this.buffers.ambient = [ambient];
+    this.lastPlayed.press = new Array(press.length).fill(0);
+    this.lastPlayed.release = new Array(release.length).fill(0);
+  }
+
+  unlock() { if (this.audioCtx.state === 'suspended') this.audioCtx.resume(); }
+
+  _spawn(buffer, { gain = 1, playbackRate = 1, loop = false } = {}) {
+    if (!buffer) return null;
+    const src = this.audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = playbackRate;
+    src.loop = loop;
+    const g = this.audioCtx.createGain();
+    g.gain.value = gain;
+    src.connect(g); g.connect(this.inputBus);
+    src.start();
+    return { src, gain: g };
+  }
+
+  startPressing() {
+    if (this.pressing) return;
+    this.pressing = true;
+    this._scheduleNextPress();
+  }
+
+  _scheduleNextPress() {
+    if (!this.pressing) return;
+    this._playOnePress();
+    const delay = 250 + Math.random() * 150;
+    this.pressTimer = setTimeout(() => this._scheduleNextPress(), delay);
+  }
+
+  _playOnePress() {
+    const pool = this.buffers.press;
+    if (!pool.length) return;
+    const now = performance.now();
+    const fresh = [];
+    for (let i = 0; i < pool.length; i++) if (now - this.lastPlayed.press[i] > 200) fresh.push(i);
+    const idx = fresh.length ? fresh[Math.floor(Math.random() * fresh.length)] : Math.floor(Math.random() * pool.length);
+    this.lastPlayed.press[idx] = now;
+    const k = this.currentIntensity;
+    this._spawn(pool[idx], { gain: 0.3 + k * 0.5, playbackRate: 1.0 - k * 0.15 });
+  }
+
+  updatePressIntensity(deformation, maxDeformation) {
+    this.currentIntensity = Math.max(0, Math.min(1, deformation / (maxDeformation || 1)));
+  }
+
+  updateMoveVelocity(velocity) {
+    const TH = 80, t = this.audioCtx.currentTime;
+    if (velocity > TH) {
+      const target = 0.2 + Math.min(1, velocity / 300) * 0.4;
+      if (!this.stretchActive) {
+        if (!this.buffers.stretch.length) return;
+        const idx = Math.floor(Math.random() * this.buffers.stretch.length);
+        const h = this._spawn(this.buffers.stretch[idx], { loop: true, gain: 0 });
+        if (!h) return;
+        this.stretchSource = h.src; this.stretchGain = h.gain;
+        this.stretchGain.gain.cancelScheduledValues(t);
+        this.stretchGain.gain.setValueAtTime(0, t);
+        this.stretchGain.gain.linearRampToValueAtTime(target, t + 0.15);
+        this.stretchActive = true;
+      } else {
+        this.stretchGain.gain.cancelScheduledValues(t);
+        this.stretchGain.gain.linearRampToValueAtTime(target, t + 0.10);
+      }
+    } else if (this.stretchActive) {
+      this.stretchGain.gain.cancelScheduledValues(t);
+      this.stretchGain.gain.linearRampToValueAtTime(0, t + 0.3);
+      const src = this.stretchSource;
+      setTimeout(() => { try { src.stop(); } catch (e) {} }, 350);
+      this.stretchActive = false; this.stretchSource = null; this.stretchGain = null;
+    }
+  }
+
+  release() {
+    this.pressing = false;
+    if (this.pressTimer) { clearTimeout(this.pressTimer); this.pressTimer = null; }
+    if (this.stretchActive && this.stretchGain) {
+      const t = this.audioCtx.currentTime;
+      this.stretchGain.gain.cancelScheduledValues(t);
+      this.stretchGain.gain.linearRampToValueAtTime(0, t + 0.15);
+      const src = this.stretchSource;
+      setTimeout(() => { try { src.stop(); } catch (e) {} }, 200);
+      this.stretchActive = false; this.stretchSource = null; this.stretchGain = null;
+    }
+    const pool = this.buffers.release;
+    if (!pool.length) { this.currentIntensity = 0; return; }
+    const idx = Math.floor(Math.random() * pool.length);
+    this._spawn(pool[idx], { gain: 0.4 + this.currentIntensity * 0.5 });
+    this.currentIntensity = 0;
+  }
+
+  setMasterVolume(v) {
+    const c = Math.max(0, Math.min(1, v));
+    const t = this.audioCtx.currentTime;
+    this.master.gain.cancelScheduledValues(t);
+    this.master.gain.linearRampToValueAtTime(c, t + 0.05);
+  }
+
+  setAmbientEnabled(on) {
+    const t = this.audioCtx.currentTime;
+    if (on) {
+      if (this.ambientSource) return;
+      if (!this.buffers.ambient.length) return;
+      const h = this._spawn(this.buffers.ambient[0], { loop: true, gain: 0 });
+      if (!h) return;
+      this.ambientSource = h.src; this.ambientGain = h.gain;
+      this.ambientGain.gain.setValueAtTime(0, t);
+      this.ambientGain.gain.linearRampToValueAtTime(0.15, t + 1.0);
+    } else {
+      if (!this.ambientSource) return;
+      this.ambientGain.gain.cancelScheduledValues(t);
+      this.ambientGain.gain.linearRampToValueAtTime(0, t + 0.5);
+      const src = this.ambientSource;
+      setTimeout(() => { try { src.stop(); } catch (e) {} }, 600);
+      this.ambientSource = null; this.ambientGain = null;
+    }
+  }
+
+  stopAll() {
+    this.pressing = false;
+    if (this.pressTimer) { clearTimeout(this.pressTimer); this.pressTimer = null; }
+    if (this.stretchSource) { try { this.stretchSource.stop(); } catch (e) {} }
+    if (this.ambientSource) { try { this.ambientSource.stop(); } catch (e) {} }
+    this.stretchSource = this.stretchGain = null; this.stretchActive = false;
+    this.ambientSource = this.ambientGain = null;
+  }
+}
+
+// =============================================================
+// Slime catalog + SVG renderers
+// =============================================================
+const SLIMES = [
+  { id: 'blue',      name: '透明蓝',  primary: '#A8D5F2', secondary: '#FFFFFF' },
+  { id: 'poop',      name: '便便',    primary: '#A6753E', secondary: '#8B5A2A' },
+  { id: 'cat',       name: '小猫',    primary: '#FFE0B5', secondary: '#FFB8C8' },
+  { id: 'dog',       name: '小狗',    primary: '#F5DEB3', secondary: '#8B4513' },
+  { id: 'sheep',     name: '小羊',    primary: '#FFFFFF', secondary: '#E8D5B7' },
+  { id: 'cake',      name: '蛋糕',    primary: '#FFF5E1', secondary: '#FFB6C1' },
+  { id: 'croissant', name: '可颂',    primary: '#E8B973', secondary: '#C8923D' },
+  { id: 'burger',    name: '汉堡',    primary: '#E8B973', secondary: '#90C572' },
+  { id: 'donut',     name: '甜甜圈',  primary: '#E8B973', secondary: '#FFB6C1' },
+];
+let currentId = SLIMES[0].id;
+
+function renderBlueSlime() {
+  return `<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="blue-body" cx="38%" cy="32%" r="70%">
+        <stop offset="0%"  stop-color="#FFFFFF" stop-opacity="0.92"/>
+        <stop offset="35%" stop-color="#D4ECFB" stop-opacity="0.75"/>
+        <stop offset="75%" stop-color="#A8D5F2" stop-opacity="0.62"/>
+        <stop offset="100%" stop-color="#7CB9DD" stop-opacity="0.55"/>
+      </radialGradient>
+      <radialGradient id="blue-depth" cx="50%" cy="55%" r="55%">
+        <stop offset="0%" stop-color="rgba(124,185,221,0)"/>
+        <stop offset="85%" stop-color="rgba(80,140,190,0)"/>
+        <stop offset="100%" stop-color="rgba(60,110,160,0.35)"/>
+      </radialGradient>
+      <radialGradient id="bubble" cx="35%" cy="30%" r="80%">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>
+        <stop offset="100%" stop-color="#E8F4FB" stop-opacity="0.6"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="140" cy="148" rx="120" ry="108" fill="url(#blue-body)"/>
+    <ellipse cx="140" cy="160" rx="120" ry="108" fill="url(#blue-depth)"/>
+    <ellipse cx="108" cy="82" rx="52" ry="11" fill="rgba(255,255,255,0.85)"/>
+    <ellipse cx="92"  cy="75" rx="22" ry="5"  fill="rgba(255,255,255,0.95)"/>
+    <circle cx="180" cy="125" r="9.5" fill="url(#bubble)"/>
+    <circle cx="180" cy="125" r="4" fill="#FFFFFF" opacity="0.9"/>
+    <circle cx="115" cy="185" r="7" fill="url(#bubble)"/>
+    <circle cx="115" cy="185" r="3" fill="#FFFFFF" opacity="0.85"/>
+    <circle cx="168" cy="208" r="5.5" fill="url(#bubble)" opacity="0.9"/>
+    <circle cx="95"  cy="145" r="4.5" fill="url(#bubble)" opacity="0.8"/>
+    <circle cx="200" cy="175" r="3.5" fill="url(#bubble)" opacity="0.75"/>
+    <ellipse cx="155" cy="245" rx="34" ry="6" fill="rgba(168,213,242,0.45)"/>
+  </svg>`;
+}
+
+function renderPoopSlime() {
+  return `<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="poop-body" cx="35%" cy="28%" r="75%">
+        <stop offset="0%" stop-color="#E2B27C"/>
+        <stop offset="45%" stop-color="#A6753E"/>
+        <stop offset="100%" stop-color="#6E4824"/>
+      </radialGradient>
+      <radialGradient id="poop-hl" cx="50%" cy="18%" r="60%">
+        <stop offset="0%" stop-color="rgba(255,240,210,0.55)"/>
+        <stop offset="100%" stop-color="rgba(255,240,210,0)"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="140" cy="215" rx="118" ry="46" fill="url(#poop-body)"/>
+    <ellipse cx="125" cy="194" rx="48" ry="9" fill="url(#poop-hl)"/>
+    <ellipse cx="140" cy="160" rx="92" ry="38" fill="url(#poop-body)"/>
+    <ellipse cx="128" cy="140" rx="36" ry="8" fill="url(#poop-hl)"/>
+    <ellipse cx="140" cy="110" rx="66" ry="30" fill="url(#poop-body)"/>
+    <ellipse cx="132" cy="93" rx="26" ry="6" fill="url(#poop-hl)"/>
+    <ellipse cx="140" cy="72" rx="36" ry="20" fill="url(#poop-body)"/>
+    <ellipse cx="138" cy="60" rx="14" ry="4" fill="url(#poop-hl)"/>
+    <ellipse cx="140" cy="48" rx="14" ry="11" fill="url(#poop-body)"/>
+    <ellipse cx="140" cy="42" rx="5" ry="2.5" fill="url(#poop-hl)"/>
+    <ellipse cx="118" cy="158" rx="13" ry="15" fill="#FFFFFF"/>
+    <ellipse cx="162" cy="158" rx="13" ry="15" fill="#FFFFFF"/>
+    <circle cx="120" cy="162" r="7" fill="#2A1810"/>
+    <circle cx="164" cy="162" r="7" fill="#2A1810"/>
+    <circle cx="122" cy="158" r="2.5" fill="#FFFFFF"/>
+    <circle cx="166" cy="158" r="2.5" fill="#FFFFFF"/>
+    <path d="M 120 178 Q 140 192 160 178" stroke="#2A1810" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderCatSlime() {
+  return `<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="cat-body" cx="38%" cy="30%" r="72%">
+        <stop offset="0%" stop-color="#FFF6E0"/>
+        <stop offset="55%" stop-color="#FFE0B5"/>
+        <stop offset="100%" stop-color="#D9B786"/>
+      </radialGradient>
+      <radialGradient id="cat-ear-in" cx="50%" cy="50%" r="60%">
+        <stop offset="0%" stop-color="#FFD3DD"/>
+        <stop offset="100%" stop-color="#FFA8B8"/>
+      </radialGradient>
+    </defs>
+    <path d="M 56 92 L 80 22 L 110 76 Z" fill="#D9B786"/>
+    <path d="M 224 92 L 200 22 L 170 76 Z" fill="#D9B786"/>
+    <path d="M 70 88 L 82 40 L 100 76 Z" fill="url(#cat-ear-in)"/>
+    <path d="M 210 88 L 198 40 L 180 76 Z" fill="url(#cat-ear-in)"/>
+    <ellipse cx="140" cy="158" rx="118" ry="105" fill="url(#cat-body)"/>
+    <ellipse cx="108" cy="100" rx="42" ry="9" fill="rgba(255,255,255,0.55)"/>
+    <path d="M 90 148 Q 108 134 126 148"  stroke="#2A1810" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M 154 148 Q 172 134 190 148" stroke="#2A1810" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="78" cy="180" rx="15" ry="9" fill="#FFB8C8" opacity="0.78"/>
+    <ellipse cx="202" cy="180" rx="15" ry="9" fill="#FFB8C8" opacity="0.78"/>
+    <path d="M 134 178 L 146 178 L 140 187 Z" fill="#FF7E9B"/>
+    <path d="M 140 187 L 140 202" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <path d="M 140 202 Q 125 215 116 202" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <path d="M 140 202 Q 155 215 164 202" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <g stroke="rgba(120,90,60,0.55)" stroke-width="1.8" stroke-linecap="round">
+      <line x1="60"  y1="195" x2="105" y2="195"/>
+      <line x1="62"  y1="208" x2="105" y2="205"/>
+      <line x1="175" y1="195" x2="220" y2="195"/>
+      <line x1="175" y1="205" x2="218" y2="208"/>
+    </g>
+  </svg>`;
+}
+
+function renderDogSlime() {
+  return `<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="dog-body" cx="38%" cy="30%" r="72%">
+        <stop offset="0%" stop-color="#FFF6DC"/>
+        <stop offset="55%" stop-color="#F5DEB3"/>
+        <stop offset="100%" stop-color="#D2B07A"/>
+      </radialGradient>
+      <radialGradient id="dog-ear" cx="40%" cy="25%" r="80%">
+        <stop offset="0%" stop-color="#A57440"/>
+        <stop offset="100%" stop-color="#5C3A1A"/>
+      </radialGradient>
+      <radialGradient id="dog-tongue" cx="40%" cy="30%" r="70%">
+        <stop offset="0%" stop-color="#FF95A8"/>
+        <stop offset="100%" stop-color="#D9445F"/>
+      </radialGradient>
+    </defs>
+    <ellipse cx="58"  cy="120" rx="28" ry="58" fill="url(#dog-ear)" transform="rotate(-15 58 120)"/>
+    <ellipse cx="222" cy="120" rx="28" ry="58" fill="url(#dog-ear)" transform="rotate(15 222 120)"/>
+    <ellipse cx="140" cy="158" rx="112" ry="102" fill="url(#dog-body)"/>
+    <ellipse cx="108" cy="100" rx="40" ry="9" fill="rgba(255,255,255,0.55)"/>
+    <circle cx="108" cy="150" r="14" fill="#2A1810"/>
+    <circle cx="172" cy="150" r="14" fill="#2A1810"/>
+    <circle cx="113" cy="146" r="4.2" fill="#FFFFFF"/>
+    <circle cx="177" cy="146" r="4.2" fill="#FFFFFF"/>
+    <path d="M 124 178 Q 140 172 156 178 Q 152 195 140 198 Q 128 195 124 178 Z" fill="#3A2614"/>
+    <circle cx="135" cy="182" r="2.6" fill="rgba(255,255,255,0.55)"/>
+    <path d="M 140 198 L 140 212" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <ellipse cx="140" cy="228" rx="15" ry="13" fill="url(#dog-tongue)"/>
+    <path d="M 140 218 L 140 238" stroke="rgba(140,40,55,0.5)" stroke-width="1.8" fill="none"/>
+  </svg>`;
+}
+
+function renderSheepSlime() {
+  return `<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="sheep-wool" cx="38%" cy="28%" r="72%">
+        <stop offset="0%" stop-color="#FFFFFF"/>
+        <stop offset="100%" stop-color="#E4E0D8"/>
+      </radialGradient>
+      <radialGradient id="sheep-face" cx="50%" cy="32%" r="70%">
+        <stop offset="0%" stop-color="#F5DDB6"/>
+        <stop offset="100%" stop-color="#B89669"/>
+      </radialGradient>
+    </defs>
+    <g fill="url(#sheep-wool)">
+      <circle cx="58"  cy="100" r="34"/>
+      <circle cx="58"  cy="178" r="34"/>
+      <circle cx="100" cy="226" r="32"/>
+      <circle cx="180" cy="226" r="32"/>
+      <circle cx="222" cy="178" r="34"/>
+      <circle cx="222" cy="100" r="34"/>
+      <circle cx="180" cy="56"  r="30"/>
+      <circle cx="100" cy="56"  r="30"/>
+      <circle cx="140" cy="60"  r="26"/>
+      <circle cx="140" cy="222" r="28"/>
+      <circle cx="70"  cy="142" r="32"/>
+      <circle cx="210" cy="142" r="32"/>
+    </g>
+    <ellipse cx="140" cy="148" rx="98" ry="92" fill="url(#sheep-wool)"/>
+    <ellipse cx="84"  cy="148" rx="12" ry="22" fill="url(#sheep-face)" transform="rotate(-28 84 148)"/>
+    <ellipse cx="196" cy="148" rx="12" ry="22" fill="url(#sheep-face)" transform="rotate(28 196 148)"/>
+    <ellipse cx="140" cy="158" rx="62" ry="55" fill="url(#sheep-face)"/>
+    <ellipse cx="122" cy="128" rx="22" ry="5" fill="rgba(255,255,255,0.55)"/>
+    <circle cx="125" cy="122" r="11" fill="url(#sheep-wool)"/>
+    <circle cx="142" cy="118" r="10" fill="url(#sheep-wool)"/>
+    <circle cx="158" cy="124" r="11" fill="url(#sheep-wool)"/>
+    <circle cx="120" cy="160" r="5.5" fill="#2A1810"/>
+    <circle cx="160" cy="160" r="5.5" fill="#2A1810"/>
+    <circle cx="122" cy="158" r="1.6" fill="#FFFFFF"/>
+    <circle cx="162" cy="158" r="1.6" fill="#FFFFFF"/>
+    <ellipse cx="100" cy="180" rx="11" ry="7" fill="#FFB8C8" opacity="0.65"/>
+    <ellipse cx="180" cy="180" rx="11" ry="7" fill="#FFB8C8" opacity="0.65"/>
+    <path d="M 134 184 L 146 184 L 140 191 Z" fill="#5C3A1A"/>
+    <path d="M 140 191 Q 130 200 122 196" stroke="#5C3A1A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <path d="M 140 191 Q 150 200 158 196" stroke="#5C3A1A" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderCakeSlime() {
+  return `<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="cake-base" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#FFF8E8"/>
+        <stop offset="100%" stop-color="#E0CCA4"/>
+      </linearGradient>
+      <linearGradient id="cake-cream" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#FFE5EE"/>
+        <stop offset="100%" stop-color="#FFA6BC"/>
+      </linearGradient>
+      <radialGradient id="cake-berry" cx="32%" cy="28%" r="78%">
+        <stop offset="0%" stop-color="#FF8A9E"/>
+        <stop offset="55%" stop-color="#E0405E"/>
+        <stop offset="100%" stop-color="#9C1F38"/>
+      </radialGradient>
+    </defs>
+    <path d="M 30 200 Q 30 252 80 254 L 200 254 Q 250 252 250 200 L 250 150 L 30 150 Z" fill="url(#cake-base)"/>
+    <ellipse cx="105" cy="180" rx="40" ry="6" fill="rgba(255,255,255,0.5)"/>
+    <path d="M 30 150 Q 50 168 70 150 Q 90 168 110 150 Q 130 168 150 150 Q 170 168 190 150 Q 210 168 230 150 Q 250 168 250 150 L 250 95 Q 250 50, 195 50 L 85 50 Q 30 50, 30 95 Z" fill="url(#cake-cream)"/>
+    <ellipse cx="105" cy="80" rx="48" ry="9" fill="rgba(255,255,255,0.6)"/>
+    <g fill="rgba(255,255,255,0.92)">
+      <circle cx="75"  cy="68" r="11"/>
+      <circle cx="205" cy="68" r="11"/>
+    </g>
+    <g fill="rgba(255,230,238,0.85)">
+      <circle cx="75"  cy="64" r="5"/>
+      <circle cx="205" cy="64" r="5"/>
+    </g>
+    <ellipse cx="140" cy="38" rx="22" ry="28" fill="url(#cake-berry)"/>
+    <ellipse cx="132" cy="28" rx="8" ry="5" fill="rgba(255,255,255,0.55)"/>
+    <circle cx="133" cy="26" r="1.4" fill="#FFEFB8"/>
+    <circle cx="146" cy="30" r="1.4" fill="#FFEFB8"/>
+    <circle cx="128" cy="40" r="1.4" fill="#FFEFB8"/>
+    <circle cx="148" cy="44" r="1.4" fill="#FFEFB8"/>
+    <circle cx="138" cy="48" r="1.4" fill="#FFEFB8"/>
+    <circle cx="142" cy="36" r="1.4" fill="#FFEFB8"/>
+    <path d="M 122 12 L 140 16 L 158 12 L 152 22 L 140 26 L 128 22 Z" fill="#7AB770"/>
+    <path d="M 140 8 L 140 18" stroke="#5A8B52" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="110" cy="208" r="8" fill="#2A1810"/>
+    <circle cx="170" cy="208" r="8" fill="#2A1810"/>
+    <circle cx="113" cy="205" r="2.5" fill="#FFFFFF"/>
+    <circle cx="173" cy="205" r="2.5" fill="#FFFFFF"/>
+    <path d="M 128 226 Q 140 236 152 226" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderCroissantSlime() {
+  return `<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="cro-body" cx="35%" cy="25%" r="80%">
+        <stop offset="0%" stop-color="#FFE39A"/>
+        <stop offset="45%" stop-color="#E8B973"/>
+        <stop offset="100%" stop-color="#8C5A22"/>
+      </radialGradient>
+      <linearGradient id="cro-tip" x1="0%" y1="0%" x2="100%" y2="0%">
+        <stop offset="0%" stop-color="#E8B973"/>
+        <stop offset="100%" stop-color="#A87838"/>
+      </linearGradient>
+    </defs>
+    <ellipse cx="140" cy="160" rx="118" ry="78" fill="url(#cro-body)"/>
+    <ellipse cx="30"  cy="158" rx="22" ry="28" fill="url(#cro-tip)" transform="rotate(-15 30 158)"/>
+    <ellipse cx="250" cy="158" rx="22" ry="28" fill="url(#cro-tip)" transform="rotate(15 250 158)"/>
+    <g stroke="rgba(96,55,18,0.45)" stroke-width="2.6" fill="none" stroke-linecap="round">
+      <path d="M 35 130 Q 90 108 140 115 Q 200 110 248 132"/>
+      <path d="M 30 160 Q 80 138 140 145 Q 200 140 252 162"/>
+      <path d="M 35 190 Q 90 175 140 178 Q 200 175 248 195"/>
+      <path d="M 50 215 Q 100 205 140 208 Q 195 205 235 220"/>
+      <path d="M 70 108 Q 130 88 200 98"/>
+    </g>
+    <ellipse cx="140" cy="105" rx="80" ry="8" fill="rgba(255,250,220,0.6)"/>
+    <ellipse cx="115" cy="102" rx="32" ry="3" fill="rgba(255,250,220,0.85)"/>
+    <circle cx="112" cy="170" r="8.5" fill="#2A1810"/>
+    <circle cx="168" cy="170" r="8.5" fill="#2A1810"/>
+    <circle cx="115" cy="167" r="2.8" fill="#FFFFFF"/>
+    <circle cx="171" cy="167" r="2.8" fill="#FFFFFF"/>
+    <path d="M 124 192 Q 140 203 156 192" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <ellipse cx="82"  cy="182" rx="13" ry="7" fill="#E89870" opacity="0.55"/>
+    <ellipse cx="198" cy="182" rx="13" ry="7" fill="#E89870" opacity="0.55"/>
+  </svg>`;
+}
+
+function renderBurgerSlime() {
+  return `<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bun-top" cx="50%" cy="28%" r="65%">
+        <stop offset="0%" stop-color="#FFE3A4"/>
+        <stop offset="55%" stop-color="#E8B973"/>
+        <stop offset="100%" stop-color="#A87838"/>
+      </radialGradient>
+      <linearGradient id="bun-bot" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#E8B973"/>
+        <stop offset="100%" stop-color="#A06E30"/>
+      </linearGradient>
+      <linearGradient id="lettuce" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#B6E59C"/>
+        <stop offset="100%" stop-color="#5FA050"/>
+      </linearGradient>
+      <linearGradient id="patty" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#8B5226"/>
+        <stop offset="100%" stop-color="#4A2810"/>
+      </linearGradient>
+    </defs>
+    <path d="M 30 222 Q 30 258 70 260 L 210 260 Q 250 258 250 222 L 250 215 L 30 215 Z" fill="url(#bun-bot)"/>
+    <rect x="26" y="188" width="228" height="32" rx="10" fill="url(#patty)"/>
+    <ellipse cx="80"  cy="202" rx="6" ry="3" fill="rgba(0,0,0,0.18)"/>
+    <ellipse cx="180" cy="208" rx="6" ry="3" fill="rgba(0,0,0,0.18)"/>
+    <ellipse cx="130" cy="200" rx="5" ry="2.5" fill="rgba(0,0,0,0.18)"/>
+    <path d="M 20 176 Q 32 158 50 174 Q 68 156 86 174 Q 104 156 122 174 Q 140 156 158 174 Q 176 156 194 174 Q 212 156 230 174 Q 248 158 260 178 L 260 192 L 20 192 Z" fill="url(#lettuce)"/>
+    <path d="M 28 168 Q 28 60 140 60 Q 252 60 252 168 Z" fill="url(#bun-top)"/>
+    <ellipse cx="108" cy="92" rx="52" ry="14" fill="rgba(255,250,220,0.55)"/>
+    <ellipse cx="85"  cy="86" rx="20" ry="5" fill="rgba(255,250,220,0.85)"/>
+    <g fill="#FFF5DC">
+      <ellipse cx="88"  cy="118" rx="3.2" ry="5.6" transform="rotate(-12 88 118)"/>
+      <ellipse cx="138" cy="92"  rx="3.2" ry="5.6"/>
+      <ellipse cx="186" cy="120" rx="3.2" ry="5.6" transform="rotate(20 186 120)"/>
+      <ellipse cx="114" cy="140" rx="3.2" ry="5.6" transform="rotate(-8 114 140)"/>
+      <ellipse cx="208" cy="150" rx="3.2" ry="5.6" transform="rotate(18 208 150)"/>
+      <ellipse cx="160" cy="138" rx="3.2" ry="5.6" transform="rotate(-25 160 138)"/>
+    </g>
+    <circle cx="105" cy="240" r="7" fill="#2A1810"/>
+    <circle cx="175" cy="240" r="7" fill="#2A1810"/>
+    <circle cx="107" cy="237" r="2.2" fill="#FFFFFF"/>
+    <circle cx="177" cy="237" r="2.2" fill="#FFFFFF"/>
+    <path d="M 128 250 Q 140 258 152 250" stroke="#2A1810" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function renderDonutSlime() {
+  return `<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="donut-bread" cx="50%" cy="50%" r="60%">
+        <stop offset="0%" stop-color="#F0C68D"/>
+        <stop offset="60%" stop-color="#D2A062"/>
+        <stop offset="100%" stop-color="#8C5A22"/>
+      </radialGradient>
+      <radialGradient id="donut-glaze" cx="40%" cy="28%" r="80%">
+        <stop offset="0%" stop-color="#FFEAEF"/>
+        <stop offset="45%" stop-color="#FFB6C1"/>
+        <stop offset="100%" stop-color="#D9709A"/>
+      </radialGradient>
+    </defs>
+    <path fill-rule="evenodd" fill="url(#donut-bread)" d="M 140 38 a 102 102 0 1 0 0.1 0 Z M 140 118 a 28 28 0 1 0 0.1 0 Z"/>
+    <path fill-rule="evenodd" fill="url(#donut-glaze)" d="M 140 46 a 94 94 0 0 1 94 94 q 0 6, -4 13 q -8 8, -22 4 q -8 -4, -16 4 q -6 8, -18 0 q -10 -2, -22 6 q -12 4, -22 -2 q -14 4, -24 -4 q -10 -6, -22 0 q -14 0, -22 -10 q -3 -6, -3 -11 a 94 94 0 0 1 81 -94 Z M 140 118 a 28 28 0 1 0 0.1 0 Z"/>
+    <ellipse cx="105" cy="75" rx="42" ry="9" fill="rgba(255,255,255,0.55)"/>
+    <g>
+      <ellipse cx="98"  cy="78"  rx="2.8" ry="6.5" fill="#FF6B9D" transform="rotate(38 98 78)"/>
+      <ellipse cx="128" cy="62"  rx="2.8" ry="6.5" fill="#5BC0E8" transform="rotate(-18 128 62)"/>
+      <ellipse cx="168" cy="66"  rx="2.8" ry="6.5" fill="#FFD656" transform="rotate(12 168 66)"/>
+      <ellipse cx="200" cy="92"  rx="2.8" ry="6.5" fill="#90C572" transform="rotate(50 200 92)"/>
+      <ellipse cx="82"  cy="120" rx="2.8" ry="6.5" fill="#B89AE6" transform="rotate(62 82 120)"/>
+      <ellipse cx="220" cy="155" rx="2.8" ry="6.5" fill="#FF8B6B" transform="rotate(-28 220 155)"/>
+      <ellipse cx="65"  cy="160" rx="2.8" ry="6.5" fill="#FFD656" transform="rotate(22 65 160)"/>
+      <ellipse cx="50"  cy="200" rx="2.8" ry="6.5" fill="#5BC0E8" transform="rotate(-40 50 200)"/>
+    </g>
+    <circle cx="105" cy="190" r="7.5" fill="#2A1810"/>
+    <circle cx="175" cy="190" r="7.5" fill="#2A1810"/>
+    <circle cx="107" cy="187" r="2.4" fill="#FFFFFF"/>
+    <circle cx="177" cy="187" r="2.4" fill="#FFFFFF"/>
+    <path d="M 122 215 Q 140 227 158 215" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+    <ellipse cx="80"  cy="208" rx="13" ry="7" fill="#FF95B0" opacity="0.55"/>
+    <ellipse cx="200" cy="208" rx="13" ry="7" fill="#FF95B0" opacity="0.55"/>
+  </svg>`;
+}
+
+const RENDERERS = {
+  blue: renderBlueSlime, poop: renderPoopSlime, cat: renderCatSlime,
+  dog: renderDogSlime, sheep: renderSheepSlime, cake: renderCakeSlime,
+  croissant: renderCroissantSlime, burger: renderBurgerSlime, donut: renderDonutSlime,
+};
+
+function renderSlime(id) {
+  const def = SLIMES.find(s => s.id === id) || SLIMES[0];
+  const slime = document.getElementById('slime');
+  slime.innerHTML = '';
+  slime.style.animation = 'none';
+  void slime.offsetWidth;
+  slime.style.animation = '';
+  const fn = RENDERERS[id];
+  slime.innerHTML = fn ? fn() : '';
+}
+
+function renderThumb(def) {
+  return `<div class="thumb" style="
+    background: radial-gradient(circle at 35% 30%, #FFFFFF, ${def.primary} 80%);
+  "></div>`;
+}
+
+// =============================================================
+// Engine + UI wiring
+// =============================================================
+const engine = new SlimeSoundEngine();
+const $ = (id) => document.getElementById(id);
+
+// Build selector
+const track = $('selector-track');
+SLIMES.forEach(def => {
+  const btn = document.createElement('button');
+  btn.className = 'pick' + (def.id === currentId ? ' selected' : '');
+  btn.dataset.id = def.id;
+  btn.setAttribute('aria-label', def.name);
+  btn.innerHTML = renderThumb(def);
+  btn.addEventListener('click', () => selectSlime(def.id));
+  track.appendChild(btn);
+});
+
+function selectSlime(id) {
+  if (id === currentId) return;
+  currentId = id;
+  document.querySelectorAll('.pick').forEach(el => {
+    el.classList.toggle('selected', el.dataset.id === id);
+  });
+  renderSlime(id);
+}
+
+// Render first
+renderSlime(currentId);
+
+// Preload sounds
+(async () => {
+  await engine.preloadAll();
+  $('loading').classList.add('hidden');
+  const ok = engine.loadStatus.filter(s => s.ok).length;
+  const total = engine.loadStatus.length;
+  const loadEl = $('s-load');
+  if (ok === total) {
+    loadEl.textContent = `✓ ${ok}/${total} 真实样本`;
+    loadEl.className = 'status ok';
+  } else {
+    loadEl.textContent = `⚠ ${ok}/${total} 真实 · ${total - ok} 合成`;
+    loadEl.className = 'status warn';
+  }
+})();
+
+// ─── Press / Move / Release on slime ──────────────────────
+const slimeEl = $('slime');
+const groundEl = $('ground-shadow');
+const MAX_DEF = 1.0;
+const PRESS_RAMP_MS = 800;
+
+let pressing = false;
+let pressStart = 0;
+let lastMove = { x: 0, y: 0, t: 0 };
+let currentVel = 0;
+let currentDef = 0;
+
+function pointerPos(e) {
+  const r = slimeEl.getBoundingClientRect();
+  if (e.touches && e.touches[0]) {
+    return { x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top };
+  }
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
+}
+
+function onDown(e) {
+  e.preventDefault();
+  engine.unlock();
+  pressing = true;
+  pressStart = performance.now();
+  const p = pointerPos(e);
+  lastMove = { x: p.x, y: p.y, t: pressStart };
+  engine.startPressing();
+}
+
+function onMove(e) {
+  if (!pressing) return;
+  e.preventDefault();
+  const p = pointerPos(e);
+  const now = performance.now();
+  const dt = (now - lastMove.t) / 1000;
+  if (dt > 0.005) {
+    const dx = p.x - lastMove.x, dy = p.y - lastMove.y;
+    const dist = Math.sqrt(dx*dx + dy*dy);
+    currentVel = dist / dt;
+    engine.updateMoveVelocity(currentVel);
+    lastMove = { x: p.x, y: p.y, t: now };
+  }
+}
+
+function onUp(e) {
+  if (!pressing) return;
+  e && e.preventDefault && e.preventDefault();
+  pressing = false;
+  engine.release();
+  currentVel = 0;
+  engine.updateMoveVelocity(0);
+}
+
+slimeEl.addEventListener('pointerdown', onDown);
+window.addEventListener('pointermove', onMove);
+window.addEventListener('pointerup', onUp);
+window.addEventListener('pointercancel', onUp);
+
+// RAF — drive deformation + apply visual squish to slime + ground shadow
+function tick() {
+  if (pressing) {
+    const t = performance.now() - pressStart;
+    currentDef = Math.min(1, t / PRESS_RAMP_MS);
+    engine.updatePressIntensity(currentDef * MAX_DEF, MAX_DEF);
+  } else {
+    currentDef = Math.max(0, currentDef - 0.08);
+  }
+  // Visual squish: scale down + ground shadow stretches horizontally
+  const compress = 1 - currentDef * 0.12;
+  const stretchX = 1 + currentDef * 0.22;
+  slimeEl.style.transform = `scale(${compress})`;
+  groundEl.style.transform = `translateX(-50%) scaleX(${stretchX})`;
+  groundEl.style.opacity = 1 - currentDef * 0.25;
+
+  if (performance.now() - lastMove.t > 80 && currentVel > 0) {
+    currentVel *= 0.7;
+    if (currentVel < 5) currentVel = 0;
+    engine.updateMoveVelocity(currentVel);
+  }
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+// ─── Top buttons ─────────────────────────────────────────
+const btnSettings = $('btn-settings');
+const btnAmbient = $('btn-ambient');
+const btnMute = $('btn-mute');
+const sheet = $('sheet');
+const sheetBg = $('sheet-bg');
+
+btnSettings.addEventListener('click', () => {
+  sheet.classList.add('show');
+  sheetBg.classList.add('show');
+});
+sheetBg.addEventListener('click', () => {
+  sheet.classList.remove('show');
+  sheetBg.classList.remove('show');
+});
+
+// Ambient toggle (both top button and settings toggle in sync)
+let ambientOn = false;
+function setAmbient(on) {
+  ambientOn = on;
+  engine.setAmbientEnabled(on);
+  btnAmbient.classList.toggle('toggled', on);
+  $('ambient-toggle').classList.toggle('on', on);
+  $('ambient-status').textContent = on ? '开' : '关';
+}
+btnAmbient.addEventListener('click', () => setAmbient(!ambientOn));
+$('ambient-toggle').addEventListener('click', () => setAmbient(!ambientOn));
+
+// Mute toggle (preserve last volume; restore on unmute)
+let muted = false;
+let lastVolume = 0.7;
+function setMute(m) {
+  muted = m;
+  btnMute.classList.toggle('toggled', m);
+  // Visually swap mute icon waves
+  document.getElementById('wave-1').style.display = m ? 'none' : '';
+  document.getElementById('wave-2').style.display = m ? 'none' : '';
+  if (m) {
+    lastVolume = +$('master').value / 100;
+    engine.setMasterVolume(0);
+  } else {
+    engine.setMasterVolume(lastVolume);
+  }
+}
+btnMute.addEventListener('click', () => setMute(!muted));
+
+// Master volume slider
+$('master').addEventListener('input', (e) => {
+  const pct = +e.target.value;
+  $('master-val').textContent = pct + '%';
+  if (muted) setMute(false);
+  engine.setMasterVolume(pct / 100);
+});
+
+// Initial state
+engine.setMasterVolume(+$('master').value / 100);
+console.log('[slime] clay UI + sound engine ready.');
+</script>
+</body>
+</html>

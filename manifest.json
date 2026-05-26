@@ -1,0 +1,38 @@
+{
+  "name": "静室 · Quiet Room",
+  "short_name": "静室",
+  "description": "为多动症与焦虑设计的小游戏合集",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0e0f1d",
+  "theme_color": "#0e0f1d",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "耳语编年",
+      "short_name": "耳语",
+      "url": "./identity-puzzle.html"
+    },
+    {
+      "name": "数字花园",
+      "short_name": "花园",
+      "url": "./number-garden.html"
+    },
+    {
+      "name": "解压小屋",
+      "short_name": "解压",
+      "url": "./relax.html"
+    }
+  ]
+}

@@ -3,7 +3,19 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#0e0f1d" />
 <title>Whisper Chronicles · 耳语编年</title>
+<meta name="description" content="五段故事，二十张面孔——听他们说话，找出谁在撒谎。" />
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="静室" />
+<meta name="format-detection" content="telephone=no" />
 <style>
   :root {
     --bg-deep: #0e0f1d;
@@ -75,6 +87,29 @@
   .screen { display: none; animation: fadeIn 0.4s var(--ease-out-soft); }
   .screen.active { display: block; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .home-back {
+    position: fixed;
+    top: max(16px, env(safe-area-inset-top, 16px));
+    left: 16px;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1.5px solid rgba(244, 168, 197, 0.55);
+    color: var(--text);
+    font-size: 24px;
+    line-height: 1;
+    text-decoration: none;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50;
+    transition: all 0.2s ease;
+    padding-bottom: 3px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  }
+  .home-back:hover { background: rgba(244, 168, 197, 0.20); border-color: var(--pink); transform: scale(1.05); }
+  .home-back:active { transform: scale(0.92); }
 
   .hero { text-align: center; padding: 36px 0 32px; }
   .hero h1 {
@@ -420,6 +455,34 @@
   .cell.visited { background: var(--panel-bright); }
   .cell.marked-good { background: var(--good-bg); border-color: var(--good); box-shadow: 0 0 16px rgba(168, 213, 181, 0.2); }
   .cell.marked-bad  { background: var(--bad-bg);  border-color: var(--bad);  box-shadow: 0 0 16px rgba(232, 158, 176, 0.2); }
+  /* Act 3 carryover suspects — pulsing border to remind player to confirm */
+  .cell.act3-carryover {
+    animation: act3-pulse 1.8s ease-in-out infinite;
+  }
+  @keyframes act3-pulse {
+    0%, 100% { box-shadow: 0 0 16px rgba(232, 158, 176, 0.2); }
+    50%      { box-shadow: 0 0 24px rgba(232, 158, 176, 0.55), 0 0 4px rgba(232, 158, 176, 0.4); }
+  }
+  /* Marks carried from a previous act but not yet re-confirmed in this act —
+     muted opacity + dashed border to signal "review me". */
+  .cell.needs-confirm {
+    opacity: 0.55;
+    filter: saturate(0.7);
+    border-style: dashed !important;
+  }
+  .cell.needs-confirm::before {
+    content: '?';
+    position: absolute;
+    top: 4px; right: 6px;
+    width: 16px; height: 16px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.15);
+    border-radius: 50%;
+    font-size: 11px;
+    color: var(--text);
+    pointer-events: none;
+    opacity: 1;
+  }
   .cell.locked { cursor: default; }
   .cell.shake { animation: shake 0.4s ease; }
   @keyframes shake {
@@ -503,6 +566,10 @@
     overflow: hidden;
   }
   .action-btn:active { transform: scale(0.96); }
+  .actions.actions-4 { grid-template-columns: repeat(4, 1fr); }
+  .actions.actions-4 .action-btn { letter-spacing: 2px; font-size: 12px; padding: 11px 0; }
+  .btn-rel { color: var(--pink); border-color: var(--pink); }
+  .btn-rel:hover { background: rgba(244, 168, 197, 0.18); }
   .btn-notebook { color: var(--good); border-color: var(--good); }
   .btn-hint { color: var(--ch-color); border-color: var(--ch-color); }
   .btn-help { color: var(--hint); border-color: var(--hint); }
@@ -635,6 +702,33 @@
   .note-item .note-quote { font-style: italic; color: var(--text); line-height: 1.6; font-size: 12px; }
   .note-item.marked-good { border-left: 3px solid var(--good); }
   .note-item.marked-bad  { border-left: 3px solid var(--bad); }
+  .rel-list { max-height: 60vh; overflow-y: auto; padding-right: 4px; }
+  .rel-item {
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .rel-item .rel-pair {
+    font-size: 13px;
+    color: var(--text);
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    font-weight: 500;
+  }
+  .rel-item .rel-link {
+    font-size: 11px;
+    color: var(--pink);
+    letter-spacing: 2px;
+    margin-bottom: 6px;
+  }
+  .rel-item .rel-text {
+    font-size: 12px;
+    color: var(--text-soft);
+    line-height: 1.7;
+  }
+
   .empty-state { text-align: center; color: var(--text-dim); font-size: 12px; padding: 24px 0; font-style: italic; }
 
   .narrative { padding: 12px 4px; }
@@ -674,6 +768,7 @@
   <div class="app">
 
     <div class="screen active" id="screen-chapters">
+      <a href="index.html" class="home-back" title="返回首页" aria-label="返回首页">‹</a>
       <div class="hero">
         <h1>Whisper Chronicles</h1>
         <div class="divider"></div>
@@ -727,8 +822,9 @@
 
       <div class="grid" id="grid"></div>
 
-      <div class="actions">
+      <div class="actions actions-4">
         <button class="action-btn btn-notebook" id="btn-notebook">笔记</button>
+        <button class="action-btn btn-rel" id="btn-relationships">关系</button>
         <button class="action-btn btn-hint" id="btn-hint">提示</button>
         <button class="action-btn btn-help" id="btn-help">放弃</button>
       </div>
@@ -772,19 +868,34 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="modal-relationships">
+    <div class="modal">
+      <div class="modal-title">关系网</div>
+      <div class="modal-sub" style="font-size: 10px; color: var(--text-dim);">本章人物关系</div>
+      <div class="rel-list" id="rel-list"></div>
+      <div class="modal-buttons" style="margin-top: 12px;">
+        <button class="modal-btn" data-close>关闭</button>
+      </div>
+    </div>
+  </div>
+
   <div class="modal-overlay" id="modal-tutorial">
     <div class="modal">
       <div class="modal-title">玩法说明</div>
       <div class="modal-body">
         · 每章三幕，由简到难。<br/>
-        · 第一幕 9 人，第二幕 16 人，第三幕 20 人。<br/>
+        · 一章共四幕：9 人 → 16 人 → 20 人 → 终审。<br/>
+        · 前三幕是「探索」——标「清白 / 可疑」，无心扣。<br/>
         · 轻触任意卡片，听 TA 说一句话。<br/>
         · <b style="color:var(--good);">没人会撒谎</b>——但大多数都在说废话。<br/>
-        · 越到后面，线索越绕——可能是<i>"A 说 B 周围有 2 个好人"</i>这种串联推理。<br/>
+        · 第四幕是<b>终审</b>：cast = 你前三幕标过「可疑」的全部人。<br/>
+        · 终审一幕错标会扣心——结合关系网+线索，找出真凶。<br/>
+        · 越到后面，线索越绕——可能是<i>"A 说 B 周围有 2 个清白"</i>这种串联推理。<br/>
         · 标错会扣一颗心。<br/><br/>
         <span style="color: var(--text-dim); font-size: 11px;">
           <b>笔记</b>：回顾所有听过的话。<br/>
-          <b>提示</b>：自动揭示一格。<br/>
+          <b>提示</b>：给你思考方向——不会直接告诉你答案。<br/>
+          引导你回到关系网、台词、笔记里去推。<br/>
           <b>放弃</b>：直接看答案，没关系的。
         </span>
       </div>
@@ -830,6 +941,24 @@
     </div>
   </div>
 
+  <div class="modal-overlay" id="modal-passphrase">
+    <div class="modal">
+      <div class="modal-title">再来之前</div>
+      <div class="modal-body" style="text-align:center;">
+        输入暗号——大小写不限。<br/>
+        <span style="font-size:11px;color:var(--text-dim);letter-spacing:2px;">提示：Ilovemomo</span>
+      </div>
+      <input id="passphrase-input" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false"
+        placeholder="键入暗号"
+        style="width:100%;margin-top:12px;padding:12px 14px;background:rgba(255,255,255,0.04);border:1px solid var(--panel-border);border-radius:10px;color:var(--text);font-size:15px;letter-spacing:3px;text-align:center;outline:none;" />
+      <div id="passphrase-hint" style="text-align:center;font-size:11px;color:var(--bad);min-height:16px;margin-top:8px;letter-spacing:2px;">&nbsp;</div>
+      <div class="modal-buttons">
+        <button class="modal-btn" id="btn-passphrase-submit">确认</button>
+        <button class="modal-btn secondary" id="btn-passphrase-cancel">算了</button>
+      </div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script>
@@ -854,10 +983,18 @@ function attachRipple(el) {
 // =============================================================
 // DIFFICULTY · grid 大小 + 推理深度
 // =============================================================
+// Difficulty curve:
+// Acts 1-3 are EXPLORATION (tentative marks, no penalty). Difficulty steepens.
+// Act 4 is VERDICT: cast = accumulated suspects from Acts 1-3, must correctly accuse.
 const DIFFICULTY = {
-  easy:   { rows: 3, cols: 3, spyMin: 2, spyMax: 3, fluffRate: 0.15, chainRate: 0.00 },
-  normal: { rows: 4, cols: 4, spyMin: 4, spyMax: 6, fluffRate: 0.30, chainRate: 0.25 },
-  hard:   { rows: 5, cols: 4, spyMin: 6, spyMax: 8, fluffRate: 0.40, chainRate: 0.50 },
+  // Chain rate progression: 15% → 60% → 92% → 75% (Act 4)
+  // Hard cranks fluff way down and chain density up — fewer self row/col
+  // clues, more "A says C's neighborhood has X" deductions.
+  easy:    { rows: 3, cols: 3, spyMin: 2, spyMax: 3, fluffRate: 0.10, chainRate: 0.15 },
+  normal:  { rows: 4, cols: 4, spyMin: 5, spyMax: 7, fluffRate: 0.18, chainRate: 0.70 },
+  hard:    { rows: 5, cols: 4, spyMin: 6, spyMax: 8, fluffRate: 0.20, chainRate: 0.92 },
+  // 'verdict' grid is dynamic — set per-suspect-count in startLevel
+  verdict: { rows: 5, cols: 4, spyMin: 1, spyMax: 8, fluffRate: 0.15, chainRate: 0.75 },
 };
 
 // =============================================================
@@ -882,6 +1019,7 @@ const CHAPTERS = {
     colorSoft: 'rgba(142, 197, 232, 0.18)',
     themeClass: 'theme-office',
     status: 'open',
+    markLabels: { tentative: { good: '清白', bad: '可疑' }, final: { good: '清白', bad: '内鬼' } },
 
     cast: [
       { name: 'Marcus',  role: 'CEO',       icon: '👔' },
@@ -923,6 +1061,24 @@ const CHAPTERS = {
       { kind: 'pair', a: 'Cal', b: 'Nia',
         link: 'IT · 守门人',
         text: '门禁记录、Slack 日志、Email 备份——\n这两位都有钥匙。\n问起来，他们都笑得很客气。' },
+      { kind: 'bond', a: 'Rhett', b: 'Vera', correlation: 'same',
+        link: '私交 · 同心 · MIT 同学',
+        text: 'Rhett 跟 Vera 是 MIT 同班——\n每个 quarter 私下吃一顿，从不带别人。\n上周他们在 SoHo 那家被人撞见。\n谁卖谁也不会卖对方。' },
+      { kind: 'bond', a: 'Priya', b: 'Iris', correlation: 'same',
+        link: '私交 · 同心 · 周三午饭局',
+        text: '上 quarter 一起做过一桩尽调——\n之后每周三同一家越南粉。\n拿奖金一起拿，背锅也一起背。' },
+      { kind: 'bond', a: 'Dan', b: 'Quentin', correlation: 'same',
+        link: '私交 · 同心 · 师徒',
+        text: 'Dan 把 Quentin 招进来的。\nQ 抄的第一份 deck，是 Dan 改了三遍。\nDan 走的路——Q 走一样的。' },
+      { kind: 'bond', a: 'Sofia', b: 'Bess',
+        link: '私交 · 暧昧 · 帮按卡',
+        text: 'Sofia 最近迟到——\n前台 Bess 替她按过两次门禁。\n是默契，也可能是交易——\n没人说得清。' },
+      { kind: 'bond', a: 'Owen', b: 'Maya', correlation: 'opposite',
+        link: '私交 · 对立 · 上一份合同',
+        text: '去年那场离职纠纷——\nMaya 站到了 Owen 的对面。\n这两位，一个赢就是另一个输。' },
+      { kind: 'bond', a: 'Jonah', b: 'Hank',
+        link: '私交 · 暧昧 · 同栋楼上下班',
+        text: 'Jonah 跟 Hank 住同一栋——\n每晚一班最后一趟电梯。\n他俩谈过几回话，谈了什么，谁也不知道。' },
       { kind: 'text', text: '二十张面孔。\n你有门禁卡，有客气的耐心。\n这就够了。' },
     ],
 
@@ -930,31 +1086,52 @@ const CHAPTERS = {
       {
         title: '第一幕 · 站立会',
         prelude: [
-          '九个人能进客户文件夹。Marcus 说从这里查起。',
-          '咖啡端着，笑着问。',
-          '他们的话还没学会绕——第一个会说漏嘴的，就藏在这里。',
+          '周一九点一刻。十五楼会议室——灯一开，刺眼。',
+          '能进客户文件夹的，就这九个人。',
+          'Priya 主持站立会。话快，眼神慢。',
+          'Dan 桌下偷看手机。Sofia 盯着窗外——昨夜下了雪，今早没人扫。',
+          '你不说话。咖啡端着。脸上挂笑。',
+          '先给每张脸贴上「清白」或「可疑」——这一幕只是初判，不必盖章。',
         ],
         difficulty: 'easy',
       },
       {
         title: '第二幕 · 加班之后',
         prelude: [
-          '第一个名字已经送上去。Marcus 看了一眼，没说话。',
-          'IT 调出夜班记录——凌晨三点，有人用 Elena 的账号登录系统。',
-          'Elena 那时正在飞往香港的飞机上。',
-          '范围扩大到十六人。',
+          '周三夜里。办公室熄了一半灯。',
+          '你的第一份单子——Marcus 看了一眼，签了。\n没说「做得好」，也没说「下一步」。\n只是签了。',
+          'IT 调出周二凌晨三点十七分的服务器登录记录——\n用的是 Elena 的账号。\n而 Elena 那一刻，在飞往香港的航班上——舱里没有信号。',
+          '范围扩大到十六人。IT、Legal，连前台都列进了名单。',
+          '今夜——没有人比另一个人更干净。\n他们开始互相指认，互相替对方开脱。',
+          '你前一轮的判断可以保留，也可以改。\n绕进去的话里，哪一句是给你听的，哪一句是给别人挡的。',
         ],
         difficulty: 'normal',
       },
       {
         title: '第三幕 · 点名',
         prelude: [
-          '两个名字已经在 Marcus 桌上。他笑了一下——"再确认一遍。"',
-          '周五早上九点。全二十人到齐。',
-          '他们开始互相指认，互相替对方开脱——',
-          '"A 说 B 周围有 2 个干净的"——把这些串起来。',
+          '周五，九点整。',
+          '二十人到齐。',
+          '你列了两个名字——Marcus 看了一眼，笑了一下。\n「再确认一遍。」',
+          '递咖啡的那一刻，你看见他眼里有一点别的东西。\n你没问。你不该问。',
+          '这一幕是判决——\n前两幕标为「可疑」的人，现在你要决定，谁是真的「内鬼」。',
+          '每一张卡，都要重新点过。\n这一次，错不起。',
         ],
         difficulty: 'hard',
+      },
+      {
+        title: '第四幕 · 终审',
+        prelude: [
+          '周五傍晚。最后一间会议室——只剩你一个人。',
+          '前三轮你列过的「可疑」全在这张桌上。',
+          '但你心里清楚——其中有人是真凶，有人只是被你怀疑过的清白人。',
+          'Marcus 推门——没说话，倒了杯水。',
+          '"就在这几个人里。不要扩大范围。"',
+          '这一群里——内鬼会撒谎掩饰。听清白的，验证内鬼的。',
+          '用关系网先确认谁可信，再用可信的话推剩下的。',
+          '错一个，少一颗心。',
+        ],
+        difficulty: 'verdict',
       },
     ],
 
@@ -1016,6 +1193,8 @@ const CHAPTERS = {
         "不要外传：{name} 就是内鬼。我说完就装我没说过。",
         "记下来：{name} 是干净的。她有一种很笨的诚实。",
         "{name}？{state}。看他眼睛你就知道。",
+        "我跟 {name} 共事过——他 {state}。一点不奇怪。",
+        "{name} 暗地里——的确 {state}。这话不外传。",
       ],
       // —— 链式 / 嵌套 ——
       chainBNeighbors: [
@@ -1043,6 +1222,22 @@ const CHAPTERS = {
       ],
       chainBCol: [
         "{B} 那一列 {n} 个有问题。审计的 Excel 一目了然。",
+      ],
+      chainCrossEqGB: [
+        "我身边{labelGood}的人数——跟 {B} 身边{labelBad}的人数，正好相等。",
+        "{B} 身边{labelBad}有几个，我身边{labelGood}就有几个。",
+      ],
+      chainSameGoodNeighbor: [
+        "我跟 {B} 身边的{labelGood}——数目一样。",
+        "{B} 身边{labelGood}多少，我这边就多少。",
+      ],
+      chainCommonGood: [
+        "我跟 {B} 身边有共同邻居——其中 {n} 个{labelGood}。",
+        "我和 {B} 的邻居有重叠——重叠里 {n} 个{labelGood}。",
+      ],
+      chainCommonBad: [
+        "我跟 {B} 共同的邻居里——{n} 个{labelBad}。",
+        "我和 {B} 的邻居有重叠——重叠里 {n} 个{labelBad}。",
       ],
       fluff: [
         "我等我的奖金等了两年。两年了。",
@@ -1076,6 +1271,7 @@ const CHAPTERS = {
     colorSoft: 'rgba(212, 165, 116, 0.20)',
     themeClass: 'theme-manor',
     status: 'open',
+    markLabels: { tentative: { good: '无嫌', bad: '可疑' }, final: { good: '无辜', bad: '下毒者' } },
 
     cast: [
       { name: 'Hadrian',  role: 'Heir',      icon: '🎩' },
@@ -1120,6 +1316,24 @@ const CHAPTERS = {
       { kind: 'pair', a: 'Bertram', b: 'Edith',
         link: 'Butler ↔ Maid',
         text: 'Bertram 在这宅子比老爷还久。\nEdith 是去年才进来的——\n而她偏偏认识 Cordelia 娘家的人。' },
+      { kind: 'bond', a: 'Mona', b: 'Cordelia', correlation: 'same',
+        link: '私交 · 同心 · 娘家旧医',
+        text: 'Mona 大夫——\n是 Cordelia 娘家请来的。\n老爷的药，也是她调的。\n两人一荣俱荣，一损俱损。' },
+      { kind: 'bond', a: 'Hayes', b: 'Vincent', correlation: 'same',
+        link: '私交 · 同心 · 生死之交',
+        text: '十年前那场战役——\nHayes 把 Vincent 从战壕里背出来。\n这一辈子，两人共进退。' },
+      { kind: 'bond', a: 'Ashby', b: 'Adelaide',
+        link: '私交 · 暧昧 · 上流引荐',
+        text: 'Adelaide 嫁进的那一家——\n是 Ashby 一手引荐的。\n回报是什么，无人愿提。' },
+      { kind: 'bond', a: 'Quill', b: 'Reginald',
+        link: '私交 · 暧昧 · 讣告笔杆',
+        text: 'Quill 是这一带写讣告的笔——\n上月才送了 Reginald 妻子的稿。\n这一回，他来得比警察还早。' },
+      { kind: 'bond', a: 'Hollis', b: 'Tom', correlation: 'same',
+        link: '私交 · 同心 · 暗婚',
+        text: '宅子里没人知道——\n女家庭教师跟马夫早就互换过信物。\n下个春天本要私奔——\n一个走，另一个跟着走。' },
+      { kind: 'bond', a: 'Bray', b: 'Bertram', correlation: 'opposite',
+        link: '私交 · 对立 · 上一辈警务',
+        text: 'Bertram 年轻时——\n是 Bray 父亲那一队的。\n这宅子前两次出事——\n一回是 Bray 父亲查，\n一回是 Bertram 被查。\n两人之间——一直有一个站在律法的对面。' },
       { kind: 'text', text: '二十张面孔，二十个动机。\n你姓 Blackwood。\n这事，得先由你来过一遍。' },
     ],
 
@@ -1127,31 +1341,51 @@ const CHAPTERS = {
       {
         title: '第一幕 · 起居室',
         prelude: [
-          '九个人留下来喝茶。其他人在花园里——假装哀悼。',
-          'Edith 说话最直。Tom 站在门边。',
-          '先从下人问起——他们的话还很直。',
+          '九位留在起居室喝茶。',
+          '其余的人，正在花园里——假装哀悼。',
+          'Edith 是去年才来的女仆，话还很直。',
+          'Tom 是马夫，站在门边，捏着帽子。',
+          '先从下人问起——下人见的，比主人说的多。',
+          '给每张脸先贴上「无嫌」或「可疑」——这一幕，只是初判。',
         ],
         difficulty: 'easy',
       },
       {
         title: '第二幕 · 宣读遗嘱',
         prelude: [
-          '第一个名字浮出来了。但 Adelaide 摇头——"你查错方向了。"',
-          'Reginald 把书房的灯点亮。十六个人围进去。',
-          '遗嘱要宣读了。听谁的脸——比墙上的画褪得还快。',
+          '你呈了第一份单子——\nAdelaide 摇了摇头。',
+          '「你查错了方向。」',
+          'Reginald 把书房的灯点上。\n十六位围进去。\n遗嘱要宣读了。',
+          '听——\n谁的脸色，比墙上那幅老爷的画褪得还快。',
+          '前一轮的判断可以保留，也可以改。\n这一幕，话会绕。',
         ],
         difficulty: 'normal',
       },
       {
         title: '第三幕 · 自白',
         prelude: [
-          '两个名字也对了。但 Cordelia 端着茶杯，看着你笑——',
-          '"第三个，你还没想到。"',
-          '暴风雨。灯火明灭。全二十人聚在大厅。',
-          '他们开始绕——"Hadrian 身边有几位清白""我跟 Cordelia 一样脏"——',
-          '把它们串起来。这是最后一轮。',
+          '两份单子上的人——都对。',
+          'Cordelia 端着茶杯，看着你笑。\n「第三个——你还没想到。」',
+          '外头是暴风雨。屋内的灯，明一阵，灭一阵。',
+          '全二十人聚在大厅。',
+          '这一幕是判决——\n前两幕标的「可疑」要重新点过。\n谁是真的「下毒者」？',
+          '最后一轮。错不起。',
         ],
         difficulty: 'hard',
+      },
+      {
+        title: '第四幕 · 终问',
+        prelude: [
+          '雨停了。天还没亮。',
+          '大厅里——只剩前三轮你看过一眼便挑出来的几位。',
+          '其他人都已遣回房中。',
+          '探长 Voss 站在壁炉边——"夫人，您怀疑的人在此。"',
+          '"但您也心知肚明——其中有真凶，也有被您一时误会的清白人。"',
+          '听他们之间的话——下毒之人会撒谎遮掩。',
+          '用关系网先认出谁开口可信，再以可信之言断剩下的。',
+          '说出谁是真的「下毒者」。错一个，少一颗心。',
+        ],
+        difficulty: 'verdict',
       },
     ],
 
@@ -1185,7 +1419,7 @@ const CHAPTERS = {
         "{name} 是个老实人。她连撒个小谎都得脸红。",
       ],
       rowSpies: [
-        "我这一头桌边，有 {n} 双手不该看的看了。",
+        "我这一排桌边——{n} 双手不该看的看了。",
         "我这一排里，{n} 个被遗嘱伤了心。我数过了。",
       ],
       colSpies: [
@@ -1214,6 +1448,8 @@ const CHAPTERS = {
         "我只说一次：是 {name} 干的。说完我就出去抽烟。",
         "记下我这话——{name} 清白。她爱过老爷，那种爱杀不了人——只能折磨人。",
         "{name}？{state}。我可以对着教堂发誓——虽然今晚的教堂大概也不听。",
+        "{name} 这种事——心里清楚，{state}。",
+        "我看着 {name} 长大——他 {state}。这话压着。",
       ],
       // —— 链式 / 嵌套 ——
       chainBNeighbors: [
@@ -1236,10 +1472,22 @@ const CHAPTERS = {
         "{B} 身边的，比我这边的——干净些。难得。",
       ],
       chainBRow: [
-        "{B} 那一边的桌沿——{n} 个有罪。我可以发誓。",
+        "{B} 那一排桌边——{n} 个有罪。我可以发誓。",
       ],
       chainBCol: [
         "{B} 这一竖——{n} 颗黑心。我可以背给你听。",
+      ],
+      chainCrossEqGB: [
+        "奴婢身旁{labelGood}的位数——与 {B} 身旁{labelBad}的位数，恰恰相等。",
+      ],
+      chainSameGoodNeighbor: [
+        "奴婢跟 {B} 身旁{labelGood}的位数——一样。",
+      ],
+      chainCommonGood: [
+        "奴婢跟 {B} 共有的邻位里——{n} 位{labelGood}。",
+      ],
+      chainCommonBad: [
+        "奴婢跟 {B} 共有的邻位里——{n} 位{labelBad}。",
       ],
       fluff: [
         "这老房子风口子真多。穿堂风吹得我想起我母亲。",
@@ -1262,61 +1510,774 @@ const CHAPTERS = {
   },
 
   // -----------------------------------------------------------
-  // THE HEART KNOWS（预告 · 粉）
+  // THE HEART KNOWS（感情 · 校园匿名情书）
   // -----------------------------------------------------------
   heart: {
     id: 'heart',
     title: 'The Heart Knows',
-    subtitle: '校园匿名情书 · 谁写给了谁',
+    subtitle: 'Westfield 大学 · 二十封匿名情书背后的人',
     icon: '💌',
     color: '#f4a8c5', color2: '#d97aab',
     colorSoft: 'rgba(244, 168, 197, 0.20)',
     themeClass: 'theme-heart',
-    status: 'preview',
-    preview: [
-      { kind: 'text', text: 'Westfield 大学。春季学期。\n第七周。' },
-      { kind: 'text', text: '二十个信箱里，\n出现了二十封匿名情书。' },
-      { kind: 'text', text: '有些是真心，\n有些是赌约，\n有些其实——是别人替写的。' },
-      { kind: 'text', text: '—— 敬请期待 ——' },
+    status: 'open',
+    markLabels: { tentative: { good: '暂信', bad: '存疑' }, final: { good: '真心', bad: '假意' } },
+
+    cast: [
+      { name: 'Lila',    role: 'President', icon: '👩‍🎓' },
+      { name: 'Ezra',    role: 'Editor',    icon: '📰' },
+      { name: 'Aria',    role: 'Junior',    icon: '🧚' },
+      { name: 'Finn',    role: 'Junior',    icon: '🏊' },
+      { name: 'Maeve',   role: 'Junior',    icon: '📚' },
+      { name: 'Oscar',   role: 'Sophomore', icon: '🎬' },
+      { name: 'Nora',    role: 'Freshman',  icon: '🌸' },
+      { name: 'Levi',    role: 'Freshman',  icon: '⚡' },
+      { name: 'Sage',    role: 'RA',        icon: '🌿' },
+      { name: 'River',   role: 'RA',        icon: '🌊' },
+      { name: 'Yuki',    role: 'TA',        icon: '⭐' },
+      { name: 'Jude',    role: 'TA',        icon: '📐' },
+      { name: 'Kai',     role: 'Athlete',   icon: '🏀' },
+      { name: 'Zoe',     role: 'Athlete',   icon: '⚽' },
+      { name: 'Juno',    role: 'Artist',    icon: '🎨' },
+      { name: 'Caspian', role: 'Artist',    icon: '🖌️' },
+      { name: 'Quinn',   role: 'Poet',      icon: '📝' },
+      { name: 'Wren',    role: 'Poet',      icon: '✒️' },
+      { name: 'Beck',    role: 'Reporter',  icon: '🎤' },
+      { name: 'Reese',   role: 'Reporter',  icon: '📷' },
     ],
+
+    intro: [
+      { kind: 'text', text: 'Westfield University。\n四月的第七周。\n樱花刚刚谢，地上是粉色的雪。' },
+      { kind: 'text', text: '上礼拜五的早晨，\n二十个学生信箱里出现了二十封匿名情书。\n字迹各异，纸张各异——\n没有一封署名。' },
+      { kind: 'text', text: '校园 BBS 炸了。\n有人哭了，有人笑了，\n也有人——在男浴室外面贴海报：\n"我等你说出来。"' },
+      { kind: 'text', text: '学生会主席 Lila 把你叫到学生中心。\n咖啡机的灯坏了，她端着一杯凉的。' },
+      { kind: 'char', who: 'Lila', quote: '"二十封信，不可能全是真心。\n有人在玩游戏——代笔的、赌约的、想伤人的。\n你来帮我找。"' },
+      { kind: 'text', text: '你为什么要管？\n因为你也收到了一封。\n字迹你认识——\n但不该是写信的人。' },
+      { kind: 'text', text: '动手之前——\n先把这群人摸清。\n谁喜欢谁，谁恨着谁的前任，\n谁帮谁代过笔。' },
+      { kind: 'pair', a: 'Lila', b: 'Ezra',
+        link: 'Senior 双雄',
+        text: '学生会主席 + 校报主编。\n三年前在一起过两个礼拜——\n没人提，他们自己也不提。' },
+      { kind: 'pair', a: 'Aria', b: 'Finn',
+        link: 'Junior 情侣',
+        text: '第三次复合中。Finn 说这次是最后一次。\nAria 上礼拜在咖啡店哭过——一个人。' },
+      { kind: 'pair', a: 'Sage', b: 'River',
+        link: 'RA 双子',
+        text: '不是亲生兄妹，但比亲的还像。\n他们各自管一栋楼，\n但每天晚上一起吃饭。' },
+      { kind: 'pair', a: 'Quinn', b: 'Wren',
+        link: '诗社双子',
+        text: '一个出过书了，一个还没。\n出书的那个最近不写了——\n没出的那个，最近每天写。' },
+      { kind: 'pair', a: 'Kai', b: 'Zoe',
+        link: '球队队长',
+        text: '男女各一。\n开学第一周就有传言——\n但他们彼此假装互相不认识。' },
+      { kind: 'pair', a: 'Juno', b: 'Caspian',
+        link: '画室二人',
+        text: 'Juno 画大型油画，毕业作品已经布展。\nCaspian 这学期没交作业——\n大家说他爸生了病。' },
+      { kind: 'bond', a: 'Nora', b: 'Lila', correlation: 'same',
+        link: '私交 · 同心 · 表姐妹',
+        text: 'Nora 是 Lila 的远房表妹。\n学生会的位子——\n是 Lila 在大一开学第一周亲手塞给她的。\nLila 翻车——Nora 第一个跟着翻。' },
+      { kind: 'bond', a: 'Maeve', b: 'Beck', correlation: 'opposite',
+        link: '私交 · 对立 · 旧稿',
+        text: '上学期校报扒过 Maeve 的一桩事——\n写稿的就是 Beck。\n一个写真心，另一个就写假——\n这一对，注定一真一假。' },
+      { kind: 'bond', a: 'Oscar', b: 'Jude', correlation: 'same',
+        link: '私交 · 同心 · 暗恋',
+        text: 'Oscar 暗恋 Jude 半年——\n借笔记借了十一次。\nJude 是助教，假装没看出来。\n这一对，要写假信，会一起写。' },
+      { kind: 'bond', a: 'Levi', b: 'Reese',
+        link: '私交 · 暧昧 · 校园 vlog',
+        text: '两人一起做校园 vlog——\n上礼拜片子还没剪完，\n他们就吵了一架，关掉了直播。' },
+      { kind: 'bond', a: 'Yuki', b: 'Caspian', correlation: 'same',
+        link: '私交 · 同心 · 旧恩',
+        text: 'Yuki 给 Caspian 写过补考——\n只此一次。\nCaspian 在画室留过一张未署名的画给她。\n人情还了一次，剩下的——一起承担。' },
+      { kind: 'bond', a: 'Ezra', b: 'Reese',
+        link: '私交 · 暧昧 · 校报上下',
+        text: '主编 Ezra 跟摄影 Reese——\n上一学期一起做过深度调查。\n那篇稿子至今未发——\n但他们都还记得那个名字。' },
+      { kind: 'text', text: '二十张面孔。\n大部分是孩子。\n但孩子做的事，最伤人。' },
+    ],
+
+    levels: [
+      {
+        title: '第一幕 · 信箱前',
+        prelude: [
+          '周一上午十点半。学生中心一楼。',
+          'Lila 给九个人发了同一条短信：「出来喝杯咖啡。」',
+          '能进信箱区扫描的，只有这几位。',
+          'Aria 还在用纸巾擦眼睛。Kai 戴着帽子，不肯摘。',
+          '你把那二十封信的字迹样本，一张一张摊在桌上。',
+          '先给每张脸贴「暂信」或「存疑」——这一幕，话还直。',
+        ],
+        difficulty: 'easy',
+      },
+      {
+        title: '第二幕 · 樱花下',
+        prelude: [
+          '周三的夜。樱花树下，几张长椅。',
+          '范围扩大到十六人——RA、TA，连校报记者都来了。',
+          '夜里说话开始绕——\n有人指别人，有人替自己的「那一封」开脱。',
+          'Caspian 还没到。他妈妈刚发了一条信息——\n他没说什么时候来。',
+          '你装作翻笔记。\n听他们怎么互相引——\n哪一句话，是写来给你听的。',
+        ],
+        difficulty: 'normal',
+      },
+      {
+        title: '第三幕 · 校报截稿前',
+        prelude: [
+          '周五凌晨三点。校报办公室。',
+          '全二十人到齐——明早出刊，今晚必须把名字交给 Ezra。',
+          '这一幕是判决——\n前两幕标为「存疑」的人，现在你要决定，谁是真的「假意」。',
+          '他们开始互相指认，互相替对方摘清。',
+          '「Lila 身边有几位是真心写信的」——把这些话串起来。',
+          '最后一轮。错不起。',
+        ],
+        difficulty: 'hard',
+      },
+      {
+        title: '第四幕 · 真相',
+        prelude: [
+          '周六清晨。樱花落尽。',
+          '校报办公室——前三轮你挑出来的人都在。',
+          'Lila 把咖啡推到你面前——"剩下的，你来定。"',
+          '"前三轮你挑出来的——有真假意，也有你一时多想的真心人。"',
+          '听他们彼此的口风——假意的会撒谎掩饰。',
+          '用关系网先认出谁的话可信，再用可信的去对剩下的——\n哪一封是真心，哪一封是假意？',
+          '错一个，少一颗心。',
+        ],
+        difficulty: 'verdict',
+      },
+    ],
+
+    twist: [
+      { kind: 'text', text: '凌晨四点。你交出名单——\n六个"代笔的"被叫进学生事务处。' },
+      { kind: 'text', text: 'Lila 走过来，鞠了一躬。\n"谢谢你。"' },
+      { kind: 'text', text: '她从口袋里拿出一封信——\n粉色信封，封口完好。' },
+      { kind: 'char', who: 'Lila', quote: '"这封我没拆。\n是写给你的。\n字迹我认识——是 Caspian 的。"' },
+      { kind: 'text', text: 'Caspian 在你刚刚交出的名单上。\n你把他归在"代笔的"里——\n因为你不相信他的字会写出那样的话。' },
+      { kind: 'char', who: 'Lila', quote: '"他是真的。\n他这学期就要退学。\n他爸已经送进了 hospice。"' },
+      { kind: 'text', text: '你打开信。\n纸上每个字都重写过两遍——\n他认真到指尖发抖。' },
+      { kind: 'text', text: '"我没指望你会回。\n但我希望，有一天，\n你想起来这一年——\n会想到我。"' },
+      { kind: 'text', text: '校园广播响了。\n春假倒计时三天。\n你站在学生中心门口——\n樱花是粉色的雪。' },
+      { kind: 'text', text: '你跑向画室那栋楼。\n灯都没开。\nCaspian 的房间号你记得。' },
+      { kind: 'text', text: '—— 第三章 完 ——' },
+    ],
+
+    theme: {
+      selfClean: [
+        "查我的笔迹。我写过的每篇 essay，TA 都收着。",
+        "我没寄信。我连邮戳都怕。",
+        "那天我在图书馆通宵——刷卡记录在的。",
+        "把我划掉。我连暗恋都不敢，更别说赌约。",
+      ],
+      neighborSpy: [
+        "{name} 上礼拜买了一沓水印纸。我看见的。",
+        "{name} 那天去信箱区，逗留了二十多分钟。她没有寄信的人。",
+        "{name} 的字迹我认得——跟其中一封很像。",
+        "{name} 跟 RA 借过钢笔。还回去的时候笔尖磨平了。",
+      ],
+      neighborGood: [
+        "{name} 当晚在我房间。我们一起复习到三点。",
+        "{name}？干净。她连自己生日卡都让别人代写。",
+        "{name} 那段时间在医院陪人。监控有的是。",
+        "{name} 连一封都没收到。她也写不出。",
+      ],
+      rowSpies: [
+        "我这一排里，{n} 个人玩了花样。我能闻出来。",
+        "我这一行 {n} 个心机的。我跟他们一起军训过。",
+      ],
+      colSpies: [
+        "我这一列里，{n} 个人参与了。我数过他们的字。",
+        "这一列有 {n} 个动了手的。校报的草稿里有线索。",
+      ],
+      total: [
+        "Lila 私下说了：这次一共 {n} 个人在玩。",
+        "我数了二十封信的字迹——{n} 封是代笔。",
+      ],
+      profAllGood: [
+        "我们 {prof} 都是真心。没人玩这种把戏——我们没那个本事。",
+        "{prof} 这群人——我担保，没人参与。我们组每周开会。",
+      ],
+      profAllBad: [
+        "我们 {prof} 全员都掺和了。一个不落。",
+        "{prof} 这群人都不干净。我们彼此心知肚明。",
+      ],
+      profDirAllGood: [
+        "看每一个 {prof} 的{dir}邻居——都是写真心的。",
+      ],
+      profDirAllBad: [
+        "看每一个 {prof} 的{dir}邻居——都参与了那场赌约。",
+      ],
+      specific: [
+        "我只说一次：{name} 写了那封——不是给你看的。",
+        "记下来：{name} 是清白的。她哭过的眼，不会演戏。",
+        "{name}？{state}。她笑的时候你就知道。",
+        "我跟 {name} 同寝——他 {state}。我了解。",
+        "{name} 这种人——我看得出，{state}。",
+      ],
+      chainBNeighbors: [
+        "{B} 身边 {total} 个人里，{nGood} 个真心。",
+        "{B} 那一片，{nSpy} 个动了笔——我看着的。",
+      ],
+      chainTriSum: [
+        "{B}、{C}、跟我——三个里，{n} 个玩了花。",
+        "我们三人——{B}、{C}、我——{n} 个写了不该写的。",
+      ],
+      chainSameAsMe: [
+        "{B} 周围跟我一样脏——我们都被人当过工具。",
+      ],
+      chainMoreThanMe: [
+        "{B} 那一群比我这群更烂。我可以发誓。",
+      ],
+      chainLessThanMe: [
+        "{B} 周围比我这边干净。她朋友少。",
+      ],
+      chainBRow: [
+        "{B} 那一排 {n} 个动了笔。她数过——比我多。",
+      ],
+      chainBCol: [
+        "{B} 那一列 {n} 个不干净。校报有底稿。",
+      ],
+      chainCrossEqGB: [
+        "我身旁{labelGood}的人数——跟 {B} 身旁{labelBad}的，刚好相等。",
+      ],
+      chainSameGoodNeighbor: [
+        "我跟 {B} 身边{labelGood}的人——一样多。",
+      ],
+      chainCommonGood: [
+        "我跟 {B} 共同的邻居里——{n} 个{labelGood}。",
+      ],
+      chainCommonBad: [
+        "我跟 {B} 共同的邻居里——{n} 个{labelBad}。",
+      ],
+      fluff: [
+        "我下个礼拜就春假了。能撑过去就好。",
+        "图书馆三楼那个角落，是我的——别问。",
+        "新的咖啡机是真的好。Lila 申请了半年。",
+        "我学分快不够了。今天可以不聊这个吗。",
+        "我妈让我转学。她不懂。",
+        "我上次心动是去年冬天。不是这次的人。",
+        "等樱花全谢，我就跟他说。一定。",
+        "诗社这礼拜没人交稿。我们都在等一个人。",
+        "我跟 TA 之间没有什么。真的没有。",
+        "我的暗恋对象搬走了。这学期没回来。",
+        "Westfield 的春天太短。我每年都来不及。",
+        "宿舍楼下那只猫，今天没出来。",
+        "我准备去做心理咨询。预约要到下个月。",
+        "Spotify 的春假歌单出了。比心情早。",
+        "我哥说大学谈恋爱是浪费时间。我同意——但我做不到。",
+      ],
+    },
   },
 
   // -----------------------------------------------------------
-  // COURT OF JADE（预告 · 玉金）
+  // COURT OF JADE（宫斗 · 玉金）
   // -----------------------------------------------------------
   court: {
     id: 'court',
     title: 'Court of Jade',
-    subtitle: '皇后酒中有毒 · 二十张面孔中找那只手',
+    subtitle: '深宫 · 皇后中毒 · 二十张面孔里那只下毒的手',
     icon: '🏯',
     color: '#d4b556', color2: '#a8924c',
     colorSoft: 'rgba(212, 181, 86, 0.20)',
     themeClass: 'theme-court',
-    status: 'preview',
-    preview: [
-      { kind: 'text', text: '深宫，七月。\n皇后端起酒杯。酒杯落地。' },
-      { kind: 'text', text: '二十位嫔妃。\n二十张笑脸。\n一只手——握过那根银针。' },
-      { kind: 'text', text: '—— 敬请期待 ——' },
+    status: 'open',
+    markLabels: { tentative: { good: '清白', bad: '可疑' }, final: { good: '忠心', bad: '异心' } },
+
+    cast: [
+      { name: '慕容',    role: '贵妃', icon: '🌸' },
+      { name: '苏婕妤',  role: '婕妤', icon: '🦋' },
+      { name: '林娴',    role: '婕妤', icon: '🌺' },
+      { name: '兰昭',    role: '昭仪', icon: '🌷' },
+      { name: '沈瑶',    role: '昭仪', icon: '🌹' },
+      { name: '柳依',    role: '才人', icon: '🌿' },
+      { name: '陈芷',    role: '才人', icon: '🍃' },
+      { name: '谢宁',    role: '答应', icon: '🪷' },
+      { name: '春兰',    role: '宫女', icon: '🪴' },
+      { name: '秋月',    role: '宫女', icon: '🌙' },
+      { name: '冬雪',    role: '宫女', icon: '❄️' },
+      { name: '夏荷',    role: '宫女', icon: '🌾' },
+      { name: '桂嬷嬷',  role: '嬷嬷', icon: '👵' },
+      { name: '朱嬷嬷',  role: '嬷嬷', icon: '🧧' },
+      { name: '王太医',  role: '太医', icon: '⚕️' },
+      { name: '周太医',  role: '太医', icon: '💊' },
+      { name: '李公公',  role: '太监', icon: '🏮' },
+      { name: '张公公',  role: '太监', icon: '🎐' },
+      { name: '赵御史',  role: '御史', icon: '📜' },
+      { name: '高总管',  role: '内务', icon: '📋' },
     ],
+
+    intro: [
+      { kind: 'text', text: '七月。深宫。\n蝉鸣三日不绝。\n长生殿的窗，已经三天没有开过。' },
+      { kind: 'text', text: '昨夜戌时三刻，\n皇后娘娘端起一杯青梅酒——\n半盏未尽，仆地。' },
+      { kind: 'char', who: '王太医', quote: '"是毒。\n慢的，不见血的那种。\n动手的人——怕惊动。"' },
+      { kind: 'text', text: '皇上传东宫太子妃入宫。\n你便是太子妃。\n传旨的时候——你还在哺着孩子。' },
+      { kind: 'char', who: '赵御史', quote: '"皇上的意思：\n不要刑部，不要内务府。\n你——一个人。\n查。"' },
+      { kind: 'text', text: '出长春殿，月光斜斜。\n宫人皆低着头。\n这一座宫——\n没人敢直视你的脸。' },
+      { kind: 'text', text: '你年方二十二。\n入东宫四年，生过两个孩子。\n你不该懂这些事——\n但你母家是御史台，\n你六岁起就跟父亲读过供状。' },
+      { kind: 'text', text: '动手之前——\n先把长生殿那夜在场的二十张脸认全。\n谁恨谁，谁求谁，谁等着谁倒下。' },
+      { kind: 'pair', a: '慕容', b: '苏婕妤',
+        link: '同入宫之姊妹',
+        text: '一年前同日入宫，皇后亲赐位分。\n最近她们走得近——\n近得让人不敢看。' },
+      { kind: 'pair', a: '林娴', b: '兰昭',
+        link: '同乡两位',
+        text: '一同从江南选秀出来——\n入宫之后，十年没说过话。\n她们的院子隔着一道墙。' },
+      { kind: 'pair', a: '春兰', b: '秋月',
+        link: '皇后近侍',
+        text: '皇后身边贴身宫女。\n一个掌茶，一个掌香。\n那夜的酒——经过两人的手。' },
+      { kind: 'pair', a: '王太医', b: '周太医',
+        link: '同门师兄弟',
+        text: '太医院双璧。\n师父二十年前死于"心衰"——\n据说，配方就在这二位手里。' },
+      { kind: 'pair', a: '李公公', b: '张公公',
+        link: '宫中双管',
+        text: '李公公守长生殿门，张公公随皇后回娘家。\n两人见面，从不互相行礼。' },
+      { kind: 'bond', a: '沈瑶', b: '王太医', correlation: 'same',
+        link: '私交 · 同心 · 月信之症',
+        text: '沈瑶染了几个月的「血气不调」——\n王太医是她殿里出入最多的人。\n药方不经过太医院。\n这一段——同蒙宠幸，亦同担罪愆。' },
+      { kind: 'bond', a: '柳依', b: '朱嬷嬷', correlation: 'same',
+        link: '私交 · 同心 · 旧仆',
+        text: '柳依生母在世时——\n朱嬷嬷便在她身边。\n那一年的春节，她俩同跪过一炷香。\n柳依若沾上一桩事——朱嬷嬷必替她遮。\n这一对——同蒙圣恩，或同坠深渊。' },
+      { kind: 'bond', a: '陈芷', b: '张公公',
+        link: '私交 · 暧昧 · 门路',
+        text: '陈芷之兄入仕——\n走的是张公公的门路。\n那一年送进宫的银子，至今没还。' },
+      { kind: 'bond', a: '谢宁', b: '桂嬷嬷', correlation: 'same',
+        link: '私交 · 同心 · 母女之分',
+        text: '谢宁年岁最小，入宫不到一年——\n桂嬷嬷待她，比对亲生女儿还细。\n夜里常听见她在偏殿哭。\n这一对——同蒙圣恩，便同沐皇恩；起了异心，便同坠深渊。' },
+      { kind: 'bond', a: '冬雪', b: '高总管',
+        link: '私交 · 暧昧 · 内务府',
+        text: '冬雪父亲在内务府——\n高总管，是她舅父。\n这宫里的差，她一向比别的宫女轻。' },
+      { kind: 'bond', a: '赵御史', b: '周太医', correlation: 'opposite',
+        link: '私交 · 对立 · 旧诊',
+        text: '去年那场风寒——\n是周太医亲诊。\n御史从此每月一帖去太医院取——\n但御史姓「赵」，是御史台。\n太医若沾上那一杯酒，御史必上折参奏。\n这两位——一忠一奸，天理使然。' },
+      { kind: 'text', text: '二十位女眷与近侍。\n大部分"侍奉"——\n所谓侍奉，是还没找到反咬的机会。' },
+    ],
+
+    levels: [
+      {
+        title: '第一幕 · 长生殿前',
+        prelude: [
+          '当夜亥时。长生殿门口——九盏灯，亮着八盏。',
+          '随娘娘出殿入殿的，便是这九个人。',
+          '春兰跪着不肯抬头。李公公站得笔直。',
+          '夏荷的手——在袖里抖。',
+          '你坐在偏殿台阶上，让宫女奉一盏龙井——慢慢问。',
+          '先给每张脸贴「清白」或「可疑」——这一幕只是初问，不必落笔。',
+        ],
+        difficulty: 'easy',
+      },
+      {
+        title: '第二幕 · 御花园',
+        prelude: [
+          '次日午后。御花园石舫。',
+          '范围扩大到十六人——东西宫嫔妃、太医院主事、内务府跟班。',
+          '她们说话开始绕——用诗，用典，用「听说」二字。',
+          '兰昭说：「那一夜风很大。」',
+          '可那一夜——没有风。',
+          '前一轮的判断可以保留，也可以改。',
+        ],
+        difficulty: 'normal',
+      },
+      {
+        title: '第三幕 · 大朝会前夜',
+        prelude: [
+          '第三日夜。明日大朝——皇上要见所有相关之人。',
+          '全二十人候在偏殿。',
+          '宫灯明一阵，灭一阵——这宫里的风，从来没有真正刮进来。',
+          '这一幕是判决——\n前两幕标的「可疑」，要在这一刻重定。\n谁是真的「异心」？',
+          '「慕容身旁有几位无辜」——把这些话串起来。',
+          '今夜过后，名单要呈御览。',
+        ],
+        difficulty: 'hard',
+      },
+      {
+        title: '第四幕 · 御前定夺',
+        prelude: [
+          '大朝前夜——三更天。',
+          '偏殿之内——只剩你前三轮挑出来的几位。',
+          '皇上未到，赵御史立在侧。',
+          '"娘娘——名单已收。"',
+          '"娘娘也明白——这几位之中，有真正动毒的，也有娘娘一时多虑的无辜人。"',
+          '听她们彼此的话——动毒之人会撒谎掩盖。',
+          '用关系网先验出谁可信，再以可信之言断剩下的。',
+          '错一个，少一颗心。今夜过后，名单要呈御览。',
+        ],
+        difficulty: 'verdict',
+      },
+    ],
+
+    twist: [
+      { kind: 'text', text: '清晨。你呈上名单——\n五名涉案之人。' },
+      { kind: 'char', who: '赵御史', quote: '"准。\n六部联审。"' },
+      { kind: 'text', text: '行刑那日清晨。\n长生殿的偏门——开了一道缝。' },
+      { kind: 'text', text: '皇后娘娘走出来。\n素衣，未施粉黛，眼神清亮。\n她比四十九小时前——\n更像一个活人。' },
+      { kind: 'char', who: '赵御史', quote: '"是娘娘自己投的。"' },
+      { kind: 'text', text: '那夜倒地之后——\n背地里跟皇上演了三日的"死亡"。\n等你查出"凶手"——\n再活回来。' },
+      { kind: 'char', who: '慕容', quote: '"她盯了我五年。\n我等她自己跳出来——\n你替她省了力。"' },
+      { kind: 'text', text: '不，慕容不是。\n慕容也在你名单上。\n是真凶——只是不是真"投毒"的那个。' },
+      { kind: 'text', text: '你站在偏门口。\n手里还攥着名单——\n上面有你自己的一位表姐。\n表姐家里——还有三个孩子。' },
+      { kind: 'text', text: '宫门缓缓关上。\n你回东宫的步子——\n一步比一步轻。\n孩子还在等你回去喂奶。' },
+      { kind: 'text', text: '—— 第四章 完 ——' },
+    ],
+
+    theme: {
+      selfClean: [
+        "查我的对牌。那夜我从未踏出自己院门半步。",
+        "我不碰青梅酒。我素来畏酸。",
+        "我没有动手的理由。皇后从未抬过我位分。",
+        "把奴婢划掉吧。奴婢这条命，是娘娘救的。",
+      ],
+      neighborSpy: [
+        "酒呈上时，{name} 就立在长案旁。她的袖口——干净得不寻常。",
+        "{name} 上月跟娘娘有过口角。一盏茶碎在地上——碎得整齐。",
+        "{name} 那夜没喝亲赐的酒。她说她不渴。七月。",
+        "{name} 晚膳时手抖。她说是天凉——殿内八炉炭火。",
+      ],
+      neighborGood: [
+        "{name} 当时在念《女则》。下不了手——她念到一半哭了。",
+        "{name} 待娘娘如生母。她每月初一抄经，从无间断。",
+        "{name} 跟奴婢在偏房理花。整支夜来香的茎都剥了。",
+        "{name} 是个老实人。她连撒谎都要脸红。",
+      ],
+      rowSpies: [
+        "奴婢这一排桌边——{n} 双手不该看的看过。",
+        "我这一排里 {n} 位有动机——皆是位分被压过的。",
+      ],
+      colSpies: [
+        "我这一列里 {n} 位知道太医院后门的钥匙藏在哪。",
+        "{n} 颗黑心。奴婢可以拿命作证。",
+      ],
+      total: [
+        "御史台私下传的：那夜动手的——一共 {n} 双手。",
+        "周太医断脉后说：殿内 {n} 人有毒迹反应。",
+      ],
+      profAllGood: [
+        "我们 {prof} 都是清白的。奴婢们……也有自己的体面。",
+        "{prof} 这一类，跟娘娘二十年——下不去那个手。",
+      ],
+      profAllBad: [
+        "我们 {prof} 一个不落都掺和了。奴婢说完——任凭娘娘处置。",
+        "{prof} 这一类——别信。我们彼此都不信。",
+      ],
+      profDirAllGood: [
+        "看每一位 {prof} 的{dir}邻位——都是清白。我用项上人头担保。",
+      ],
+      profDirAllBad: [
+        "看每一位 {prof} 的{dir}邻位——皆有罪。无一例外。",
+      ],
+      specific: [
+        "奴婢只说这一次：是 {name} 动的手。",
+        "记奴婢这话：{name} 清白。她爱过娘娘——爱得糊涂。",
+        "{name}？{state}。奴婢可以指着列祖发誓。",
+        "{name} 这位——奴婢知道她 {state}。",
+        "奴婢看着 {name} 进宫的——她 {state}。这话压在心里。",
+      ],
+      chainBNeighbors: [
+        "{B} 身旁 {total} 位里——{nGood} 位无辜。奴婢留心了一整夜。",
+        "{B} 那一圈——{nSpy} 双不干净的手。奴婢数过——三遍。",
+      ],
+      chainTriSum: [
+        "{B}、{C}、跟奴婢三个里头——{n} 颗黑心。",
+        "{B} 跟 {C}，加上奴婢——{n} 个有罪。",
+      ],
+      chainSameAsMe: [
+        "{B} 身边脏的——跟奴婢身边一样多。我们坐得近，看得见。",
+      ],
+      chainMoreThanMe: [
+        "{B} 那一片，比奴婢这一片——脏。",
+      ],
+      chainLessThanMe: [
+        "{B} 身边的——比奴婢这边——干净。难得。",
+      ],
+      chainBRow: [
+        "{B} 那一排——{n} 位有罪。御史台底册里查得到。",
+      ],
+      chainBCol: [
+        "{B} 这一列——{n} 颗黑心。奴婢可以一一报出。",
+      ],
+      chainCrossEqGB: [
+        "奴婢身旁{labelGood}的位数——与 {B} 身旁{labelBad}的位数，正好相等。",
+      ],
+      chainSameGoodNeighbor: [
+        "奴婢跟 {B} 身边{labelGood}的人——数目相同。",
+      ],
+      chainCommonGood: [
+        "奴婢跟 {B} 同位的几人里——{n} 位{labelGood}。",
+      ],
+      chainCommonBad: [
+        "奴婢跟 {B} 同位的几人里——{n} 位{labelBad}。",
+      ],
+      fluff: [
+        "今年的栀子开得晚——往年这时早谢了。",
+        "奴婢这几日睡得不好。梦总是同一个。",
+        "蝉鸣三日不绝——奴婢小时候听人说是不祥。",
+        "新进来的小宫女，今天又掉了一只簪子。",
+        "请娘娘恕罪——奴婢腰不好，跪不得太久。",
+        "茶要冷了。奴婢去换一盏。",
+        "这宫里的风——刮的不是风，是话。",
+        "上个月皇上歇在含元殿，三个晚上。奴婢只是听说。",
+        "御花园的鱼又少了两条。",
+        "奴婢的姑姑也在宫里——她让奴婢什么都别说。",
+        "雷声——刚才响过一次。但是天没雨。",
+        "奴婢识字不多。烦请娘娘问得简单些。",
+        "母家催奴婢回去——说妹妹要出嫁。奴婢回不去。",
+        "宫墙太高。奴婢出生那年，皇后娘娘还是太子妃。",
+        "请收回奴婢这碗茶。奴婢今日喝不下。",
+      ],
+    },
   },
 
   // -----------------------------------------------------------
-  // THRESHOLD（预告 · 紫）
+  // THRESHOLD（灵异 · 紫）
   // -----------------------------------------------------------
   threshold: {
     id: 'threshold',
     title: 'Threshold',
-    subtitle: '他们之中 · 有人不是活人',
-    icon: '🕯',
+    subtitle: 'Sablestone Hotel · 他们之中 · 有人不是活人',
+    icon: '🪞',
     color: '#b29ee8', color2: '#9080cc',
     colorSoft: 'rgba(178, 158, 232, 0.20)',
     themeClass: 'theme-threshold',
-    status: 'preview',
-    preview: [
-      { kind: 'text', text: '老旅馆上礼拜重新开业。\n二十位客人办理了入住。' },
-      { kind: 'text', text: '其中——只有一部分人，\n地上有影子。' },
-      { kind: 'text', text: '—— 敬请期待 ——' },
+    status: 'open',
+    markLabels: { tentative: { good: '似活', bad: '存疑' }, final: { good: '活人', bad: '亡魂' } },
+
+    cast: [
+      { name: 'Magda',   role: 'Front Desk', icon: '🛎️' },
+      { name: 'Otto',    role: 'Bellhop',    icon: '🎩' },
+      { name: 'Inez',    role: 'Maid',       icon: '🧹' },
+      { name: 'Daisy',   role: 'Maid',       icon: '🧺' },
+      { name: 'Sven',    role: 'Caretaker',  icon: '🪓' },
+      { name: 'Bertram', role: 'Cook',       icon: '🍲' },
+      { name: 'Vere',    role: 'Owner',      icon: '🗝️' },
+      { name: 'Klaus',   role: 'Doctor',     icon: '⚕️' },
+      { name: 'Elsa',    role: 'Doctor',     icon: '💊' },
+      { name: 'Holt',    role: 'Banker',     icon: '💼' },
+      { name: 'Vivian',  role: 'Banker',     icon: '💰' },
+      { name: 'Jane',    role: 'Writer',     icon: '✒️' },
+      { name: 'Bertie',  role: 'Writer',     icon: '📖' },
+      { name: 'Lucia',   role: 'Singer',     icon: '🎤' },
+      { name: 'Hugo',    role: 'Writer',     icon: '🎬' },
+      { name: 'Cecile',  role: 'Nun',        icon: '🕊️' },
+      { name: 'Anton',   role: 'Priest',     icon: '✝️' },
+      { name: 'Eli',     role: 'Child',      icon: '🧸' },
+      { name: 'Mira',    role: 'Child',      icon: '🪀' },
+      { name: 'Tomas',   role: 'Stranger',   icon: '☂️' },
     ],
+
+    intro: [
+      { kind: 'text', text: 'The Sablestone Hotel。\n海拔 1800 米。\n一条山路只通到这里——再往上是雪。' },
+      { kind: 'text', text: '五十年前，这家旅馆关了门。\n据说是一夜之间——\n那一夜的客人，也没有人离开。' },
+      { kind: 'text', text: '上礼拜，新主人 Vere 重新开张。\n二十位客人办理了入住。\n你的房间是十九号——\n靠走廊尽头，朝北。' },
+      { kind: 'text', text: '今晚你下楼吃饭，\n走廊里那双眼睛——看了你三次。\n那不是任何客人，\n那是镜子里的另一个你。' },
+      { kind: 'text', text: 'Magda 在前台给了你一只蜡烛。' },
+      { kind: 'char', who: 'Magda', quote: '"电不稳。\n夜里灯灭的时候——\n不要看镜子里的人。\n不要应他们的话。"' },
+      { kind: 'text', text: '你笑了一下。她没笑。' },
+      { kind: 'text', text: '半夜两点。\n你听见走廊里——\n有人轻轻敲了你的门。\n两下。然后停了。' },
+      { kind: 'text', text: '动手之前——\n先把这二十张面孔看清。\n谁来了又似乎从未离开，\n谁有影子，谁没有。' },
+      { kind: 'pair', a: 'Magda', b: 'Sven',
+        link: 'Front Desk + 老看门人',
+        text: '五十年前那一夜——他们都在。\n登记册上，名字一笔一划，是他们的字。\n但他们不到五十岁。' },
+      { kind: 'pair', a: 'Eli', b: 'Mira',
+        link: '两个小孩',
+        text: '走廊里手牵手。\n登记册上，他们父母不在——\n只有他们二人。\n他们说，"妈妈一会儿就来"。' },
+      { kind: 'pair', a: 'Cecile', b: 'Anton',
+        link: '修女 + 神父',
+        text: '互相听了三十年的告解。\n这一次，他们似乎在等同一件事——\n但谁也不先说。' },
+      { kind: 'pair', a: 'Klaus', b: 'Elsa',
+        link: '医生夫妇',
+        text: '住的不是同一间。\n登记的姓氏也不同——\n但 Otto 看见他们在二楼的阳台亲了一下。' },
+      { kind: 'pair', a: 'Vere', b: 'Bertram',
+        link: '旅馆主人 + 老厨子',
+        text: '都说不记得五十年前。\n但 Bertram 做菜的方子——\n跟当年那本厨房日志里一模一样。' },
+      { kind: 'bond', a: 'Otto', b: 'Lucia', correlation: 'same',
+        link: '私交 · 同心 · 五十年前的箱子',
+        text: 'Otto 给 Lucia 拎过箱子——\n五十年前的那一夜。\n他记得她唱的那一段，\n她现在唱的，一字未改。\n两人共一段五十年前的事——\n要么都还有影子，要么——都没。' },
+      { kind: 'bond', a: 'Inez', b: 'Hugo', correlation: 'same',
+        link: '私交 · 同心 · 三楼储物间',
+        text: 'Inez 替 Hugo 收过剧本草稿——\n藏在三楼那间没人进的储物间。\n那个房间——\n登记册上压根不存在。\n他俩为彼此撒同一种谎。' },
+      { kind: 'bond', a: 'Daisy', b: 'Tomas',
+        link: '私交 · 暧昧 · 兄妹之疑',
+        text: 'Daisy 说 Tomas 是她小时候走丢的哥哥——\nTomas 不承认。\n但他俩同时摸耳后那颗痣——\n动作一模一样。' },
+      { kind: 'bond', a: 'Holt', b: 'Vere', correlation: 'same',
+        link: '私交 · 同心 · 抵押',
+        text: 'Vere 重新开张的钱——\n一半是 Holt 抵了自己房子来的。\n要是这一夜出事，\n他俩同一艘船——同生同灭。' },
+      { kind: 'bond', a: 'Vivian', b: 'Jane', correlation: 'opposite',
+        link: '私交 · 对立 · 一本未付的书',
+        text: 'Jane 上一本书的主角原型——\n就是 Vivian。\nJane 没付版权费。\nVivian 这次入住——带了律师函。\n这两位——一个活人一个亡魂——\n注定相反。' },
+      { kind: 'bond', a: 'Bertie', b: 'Eli',
+        link: '私交 · 暧昧 · 童话',
+        text: 'Bertie 写童话——\n这世上唯一真读过的，\n是 Eli。\n他能背 Bertie 三十年前那本绝版的。' },
+      { kind: 'text', text: '二十张面孔。\n他们不是来害你——\n他们是来——提醒你。' },
+    ],
+
+    levels: [
+      {
+        title: '第一幕 · 大厅初遇',
+        prelude: [
+          '入住第一夜。九位客人围炉而坐。',
+          '柴火该爆的时候，它不爆。',
+          'Lucia 唱了一段旧歌——没人鼓掌，可每一双眼眶都湿了。',
+          'Eli 一直在画画。画的是你的房间号。',
+          '先给每张脸贴「似活」或「存疑」——这一幕，话还直。',
+          '听——他们的口气里，藏着不该有的悲伤。',
+        ],
+        difficulty: 'easy',
+      },
+      {
+        title: '第二幕 · 二楼回廊',
+        prelude: [
+          '第二夜。电灯一阵亮，一阵灭。',
+          '范围扩大到十六位客人。\nMagda 叮嘱过你——不要看镜子。\n你还是看了。',
+          '镜子里——有些人没有影子。',
+          '走廊尽头那盏灯，一直亮着——\n但没人换过灯泡，五十年了。',
+          'Mira 牵你的手。\n她的手——是凉的。',
+          '前一轮的判断可以保留，也可以改。',
+        ],
+        difficulty: 'normal',
+      },
+      {
+        title: '第三幕 · 地下酒窖',
+        prelude: [
+          '第三夜凌晨。',
+          '地下酒窖——二十支蜡烛。',
+          '一半的蜡烛——没有影子。但火焰是真的。',
+          '他们围你坐了一圈。',
+          '这一幕是判决——\n前两幕标的「存疑」，现在你要决定，谁是真的「亡魂」。',
+          '最后一轮——你要决定，谁可以走。',
+        ],
+        difficulty: 'hard',
+      },
+      {
+        title: '第四幕 · 谁该走',
+        prelude: [
+          '黎明前——四点四十分。',
+          '酒窖里——只剩你前三轮怀疑过的人。',
+          '蜡烛烧得短了。',
+          'Magda 站在门边——"剩下的，你来定。"',
+          '"你怀疑过的人都在此。有的是亡魂——有的，只是你一时看花了眼。"',
+          '听他们彼此之间的低语——亡魂会说谎，让你误信。',
+          '用关系网先认出谁可信，再凭可信的话辨剩下的。',
+          '谁是真的「亡魂」？错一个，少一颗心。',
+        ],
+        difficulty: 'verdict',
+      },
+    ],
+
+    twist: [
+      { kind: 'text', text: '凌晨四点四十分。\n你站在地下酒窖。\n二十支蜡烛——你已经点完所有的名字。' },
+      { kind: 'text', text: '你交出名单——\n那些"不是活人"的几位。' },
+      { kind: 'text', text: 'Magda 看了一眼。\n她笑了。' },
+      { kind: 'char', who: 'Magda', quote: '"不是这样的。\n我们——都是。"' },
+      { kind: 'text', text: '酒窖墙上那面破镜子里——\n二十个人。\n只有一个有影子。' },
+      { kind: 'text', text: '那个人——\n是你。' },
+      { kind: 'char', who: 'Sven', quote: '"你来这家旅馆，是上个月十七号。\n那一夜——你的车冲下了山崖。"' },
+      { kind: 'text', text: '你不记得。\n但你看着自己的手——\n它干净，没有血。\n太干净了——没有上个月十七号到今天该有的尘。' },
+      { kind: 'char', who: 'Magda', quote: '"你不肯走。\n所以我们陪了你这一个月。\n我们陪了五十年的人——也是这样。"' },
+      { kind: 'char', who: 'Cecile', quote: '"我们一直想告诉你——\n你可以走了。"' },
+      { kind: 'text', text: '酒窖的门——开了。\n外面是一束光。\n你听见——很远，很远——\n母亲在叫你的名字。' },
+      { kind: 'text', text: 'Eli 抬起头。\n他画的不是你的房间号——\n是你车牌的最后三位。' },
+      { kind: 'text', text: '—— 第五章 完 ——' },
+    ],
+
+    theme: {
+      selfClean: [
+        "我有影子。你在十九号房见过——昨晚月光下，墙上一道。",
+        "我吃过 Bertram 的汤。鬼喝不下盐。",
+        "查登记册——我的名字写得手都在抖。鬼不抖。",
+        "把我划掉。我不属于这里。我只是过路。",
+      ],
+      neighborSpy: [
+        "{name} 走过走廊不发出声音。我数了五次——皆然。",
+        "{name} 那夜在二楼。镜子里——没有她。",
+        "{name} 笑的时候，嘴角不动。眼睛先笑。",
+        "{name} 的手是凉的。屋里八度——她的手该是冷的。但凉得不对。",
+      ],
+      neighborGood: [
+        "{name} 喘气——你能看见雾。鬼不喘。",
+        "{name} 跟我在火炉边坐了一夜。她打了三个哈欠。",
+        "{name} 走路有声音。地板会响。",
+        "{name} 看蜡烛——蜡烛是斜的。鬼看不见斜。",
+      ],
+      rowSpies: [
+        "我这一排里——{n} 个没有影子。我留心看的。",
+        "这一行有 {n} 个不喘气。我数过。",
+      ],
+      colSpies: [
+        "我这一列里——{n} 个不在登记册上。Magda 给我看过。",
+        "{n} 个没有重量。Otto 拎过他们的箱子。",
+      ],
+      total: [
+        "Vere 私下告诉我：今晚有 {n} 位——不是来过夜的。",
+        "Sven 数过这家旅馆五十年里的客人——这一夜，{n} 个未离开。",
+      ],
+      profAllGood: [
+        "我们 {prof} 都是活的。我能担保——我们一起吃了三餐。",
+        "{prof} 这一行——都还有体温。",
+      ],
+      profAllBad: [
+        "我们 {prof} 都不是活人了。我们今晚才知道。",
+        "{prof} 这一行——一个也没走出过这家旅馆。",
+      ],
+      profDirAllGood: [
+        "看每一位 {prof} 的{dir}邻位——都有影子。我看见的。",
+      ],
+      profDirAllBad: [
+        "看每一位 {prof} 的{dir}邻位——皆无影。皆无声。",
+      ],
+      specific: [
+        "我只说一次：{name} 不是活人。她坐了三小时，杯子里的茶还烫。",
+        "记下来：{name} 是活的。她打了喷嚏。鬼不打喷嚏。",
+        "{name}？{state}。她照不出镜子。",
+        "{name}——我留心过，是 {state}。",
+        "{name} 这一位——你看她的影子就知道，是 {state}。",
+      ],
+      chainBNeighbors: [
+        "{B} 身边 {total} 个人里——{nGood} 个有影子。我数过。",
+        "{B} 那一圈——{nSpy} 个不喘气。我守了一夜。",
+      ],
+      chainTriSum: [
+        "{B}、{C}、跟我——三个里，{n} 个不是活人。",
+        "我们三个：{B}、{C}、我自己——{n} 个没有影子。",
+      ],
+      chainSameAsMe: [
+        "{B} 周围跟我这边一样——一样多没有影子的。我们坐得近。",
+      ],
+      chainMoreThanMe: [
+        "{B} 那一片，比我这片——影子少。",
+      ],
+      chainLessThanMe: [
+        "{B} 身边比我这边——更像活的。",
+      ],
+      chainBRow: [
+        "{B} 那一排——{n} 个没有重量。Otto 知道。",
+      ],
+      chainBCol: [
+        "{B} 这一列——{n} 个不在登记册。Magda 的笔记里。",
+      ],
+      chainCrossEqGB: [
+        "我身旁{labelGood}的人数——跟 {B} 身旁{labelBad}的人数，刚好一样。",
+      ],
+      chainSameGoodNeighbor: [
+        "我跟 {B} 身旁的{labelGood}——一样多。",
+      ],
+      chainCommonGood: [
+        "我跟 {B} 共同的邻居里——{n} 位{labelGood}。",
+      ],
+      chainCommonBad: [
+        "我跟 {B} 共同的邻居里——{n} 位{labelBad}。",
+      ],
+      fluff: [
+        "山下的暴风雪——什么时候才停。",
+        "我的房间钥匙第三次找不到。",
+        "走廊那只钟——一直停在三点十七分。Sven 说修过。",
+        "这里的咖啡——闻起来比上海的好。",
+        "Bertie 借了我一本书——我看到一半了。",
+        "Lucia 今晚不唱歌了。她说嗓子哑。",
+        "Eli 一直画画。我没问他画什么。",
+        "今天的浴缸——水是冷的，但水汽是热的。",
+        "Anton 神父不喝酒。他自己说的。",
+        "Cecile 修女整夜在祈祷——我隔着两道墙都听得见。",
+        "前台的蜡烛——是杏仁味的。我不喜欢。",
+        "Vere 说这家旅馆——曾经是个修道院。",
+        "Daisy 笑起来很好看。她笑得不多。",
+        "我来这里——本来只是路过。",
+        "Tomas 一直坐在窗边。他在等谁，我不知道。",
+      ],
+    },
   },
 };
 
@@ -1329,18 +2290,35 @@ const DIRS = [
   { dx: -1, dy: 0, name: '左侧', shortName: '左' },
   { dx: 1, dy: 0,  name: '右侧', shortName: '右' },
 ];
+// 8-direction (Moore) — used for "身边/周围" counting semantics so the player's
+// intuitive "all adjacent cards" matches the generator's neighborhood definition.
+// Direct directional clues ("X 在我上方") still iterate the 4-direction DIRS above.
+const DIRS_ALL = [
+  { dx: 0, dy: -1 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 }, { dx: 1, dy: 0 },
+  { dx: -1, dy: -1 }, { dx: 1, dy: -1 }, { dx: -1, dy: 1 }, { dx: 1, dy: 1 },
+];
+function neighbor8(i, dir) {
+  const [r, c] = idxToRc(i);
+  const nr = r + dir.dy, nc = c + dir.dx;
+  if (nr < 0 || nr >= state.rows || nc < 0 || nc >= state.cols) return -1;
+  return rcToIdx(nr, nc);
+}
 
 const state = {
   screen: 'chapters',
   currentChapterId: null,
   currentLevelIdx: 0,
-  // dimensions of current puzzle
+  // dimensions of current puzzle (changes per act)
   rows: 5, cols: 4, total: 20,
   // cinematic
   cineScenes: [], cineIdx: 0, cineAfter: null,
-  // puzzle
+  // chapter tracking
+  chapterId: null,
+  chapterTruth: {},      // name → boolean (is this character a spy/真凶 — fixed across all acts)
+  chapterSuspects: [],   // names of characters ever marked 'bad' in Acts 1-3 (carried into Act 4)
+  // per-act state — regenerated every startLevel
   cast: [], solution: [], statements: [],
-  marks: [], locked: [], visited: [],
+  marks: [], locked: [], visited: [], actTouched: [],
   hearts: 3, selectedIdx: -1,
   startTime: 0, elapsed: 0, timerId: null, active: false,
   progress: {},
@@ -1349,17 +2327,80 @@ const state = {
 // =============================================================
 // HELPERS  (dimension-aware)
 // =============================================================
+// — Seeded PRNG (mulberry32) — each level always generates the same puzzle —
+let _puzzleSeed = 0;
+function seedPuzzleRng(seed) { _puzzleSeed = (seed | 0) || 1; }
+function rand() {
+  _puzzleSeed = (_puzzleSeed + 0x6D2B79F5) | 0;
+  let t = _puzzleSeed;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+function hashSeed(str) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return h || 1;
+}
+
+// === Chapter-aware label helpers ===
+// "Final act" now means Act 4 (verdict) — the only act with heart penalty.
+function isFinalAct() {
+  const ch = CHAPTERS[state.currentChapterId];
+  if (!ch || !ch.levels) return false;
+  const lvl = ch.levels[state.currentLevelIdx];
+  return lvl && lvl.difficulty === 'verdict';
+}
+function isExplorationAct() {
+  return !isFinalAct();
+}
+function currentLabels() {
+  const ch = CHAPTERS[state.currentChapterId];
+  const fallback = { good: '好人', bad: '卧底' };
+  if (!ch || !ch.markLabels) return fallback;
+  return (isFinalAct() ? ch.markLabels.final : ch.markLabels.tentative) || fallback;
+}
+function labelFor(markKey, forceFinal) {
+  const ch = CHAPTERS[state.currentChapterId];
+  if (!ch || !ch.markLabels) return markKey === 'good' ? '好人' : '卧底';
+  const pair = (forceFinal || isFinalAct()) ? ch.markLabels.final : ch.markLabels.tentative;
+  return markKey === 'good' ? pair.good : pair.bad;
+}
+
 function shuffle(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(rand() * (i + 1));
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
 }
-function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function pick(arr) { return arr[Math.floor(rand() * arr.length)]; }
 function rcToIdx(r, c) { return r * state.cols + c; }
 function idxToRc(i) { return [Math.floor(i / state.cols), i % state.cols]; }
+function neighborsOf(i) {
+  // 8-neighbor (Moore) — matches "身边/周围" player intuition.
+  const out = [];
+  for (const d of DIRS_ALL) {
+    const n = neighbor8(i, d);
+    if (n !== -1) out.push(n);
+  }
+  return out;
+}
+function countGoodNeighbors(i, sol) {
+  return neighborsOf(i).filter(n => !sol[n]).length;
+}
+function countBadNeighbors(i, sol) {
+  return neighborsOf(i).filter(n => sol[n]).length;
+}
+function commonNeighbors(i, j) {
+  const ni = new Set(neighborsOf(i));
+  return neighborsOf(j).filter(n => ni.has(n));
+}
+
 function neighbor(i, dir) {
   const [r, c] = idxToRc(i);
   const nr = r + dir.dy, nc = c + dir.dx;
@@ -1367,12 +2408,8 @@ function neighbor(i, dir) {
   return rcToIdx(nr, nc);
 }
 function allNeighbors(i) {
-  const out = [];
-  for (const d of DIRS) {
-    const n = neighbor(i, d);
-    if (n !== -1) out.push(n);
-  }
-  return out;
+  // 8-neighbor (Moore) — "身边/周围" semantics in collective clues.
+  return neighborsOf(i);
 }
 function countSpyNeighbors(i, sol) {
   return allNeighbors(i).filter(n => sol[n]).length;
@@ -1409,7 +2446,7 @@ function pickCast(chapterCast, total) {
 
 function generateSolution(diff) {
   const range = diff.spyMax - diff.spyMin + 1;
-  const spyCount = diff.spyMin + Math.floor(Math.random() * range);
+  const spyCount = diff.spyMin + Math.floor(rand() * range);
   const sol = Array(state.total).fill(false);
   shuffle([...Array(state.total).keys()]).slice(0, spyCount).forEach(i => sol[i] = true);
   return sol;
@@ -1419,6 +2456,7 @@ function generateSolution(diff) {
 function generateDirectClue(i, cast, sol, theme) {
   const me = cast[i];
   const options = [];
+  const isHard = state.rows >= 5;
   if (!sol[i]) theme.selfClean.forEach(t => options.push(t));
   for (const dir of DIRS) {
     const n = neighbor(i, dir);
@@ -1427,20 +2465,28 @@ function generateDirectClue(i, cast, sol, theme) {
     pool.forEach(t => options.push(templ(t, { name: cast[n].name, dir: dir.shortName })));
   }
   const [r, c] = idxToRc(i);
-  let rs = 0;
-  for (let cc = 0; cc < state.cols; cc++) if (sol[rcToIdx(r, cc)]) rs++;
-  theme.rowSpies.forEach(t => options.push(templ(t, { n: rs })));
-  let cs = 0;
-  for (let rr = 0; rr < state.rows; rr++) if (sol[rcToIdx(rr, c)]) cs++;
-  theme.colSpies.forEach(t => options.push(templ(t, { n: cs })));
+  // In hard, demote "我这一排/列..." self-references so the chain branch dominates.
+  // Still keep them as rare options for variety (one entry instead of all templates).
+  if (!isHard) {
+    let rs = 0;
+    for (let cc = 0; cc < state.cols; cc++) if (sol[rcToIdx(r, cc)]) rs++;
+    theme.rowSpies.forEach(t => options.push(templ(t, { n: rs })));
+    let cs = 0;
+    for (let rr = 0; rr < state.rows; rr++) if (sol[rcToIdx(rr, c)]) cs++;
+    theme.colSpies.forEach(t => options.push(templ(t, { n: cs })));
+  }
   const totalSpies = sol.filter(x => x).length;
   theme.total.forEach(t => options.push(templ(t, { n: totalSpies })));
 
   const sameProf = cast.map((rr, idx) => ({ idx, role: rr })).filter(x => x.role.role === me.role);
   if (sameProf.length >= 2) {
     const spies = sameProf.filter(x => sol[x.idx]).length;
-    if (spies === 0) theme.profAllGood.forEach(t => options.push(templ(t, { prof: me.role })));
-    if (spies === sameProf.length) theme.profAllBad.forEach(t => options.push(templ(t, { prof: me.role })));
+    // profAllGood/profAllBad are STRONG group-reveal clues — only step (4)
+    // emits them with a hard cap. Don't let them leak in via the fill phase.
+    if (!isHard) {
+      if (spies === 0) theme.profAllGood.forEach(t => options.push(templ(t, { prof: me.role })));
+      if (spies === sameProf.length) theme.profAllBad.forEach(t => options.push(templ(t, { prof: me.role })));
+    }
     for (const dir of DIRS) {
       const neighbors = sameProf.map(x => neighbor(x.idx, dir));
       if (neighbors.length < 2 || neighbors.some(n => n === -1)) continue;
@@ -1451,12 +2497,25 @@ function generateDirectClue(i, cast, sol, theme) {
       }
     }
   }
-  // specific other
+  // specific other — IMPORTANT: only use templates that match j's actual truth.
+  // Convention: specific[0] = incriminating (only when j is actually a spy),
+  //             specific[1] = vouching (only when j is actually innocent),
+  //             specific[2] = flexible (uses {state}, always matches truth).
   const others = []; for (let j = 0; j < state.total; j++) if (j !== i) others.push(j);
   const j = pick(others);
-  theme.specific.forEach(t => options.push(templ(t, {
-    name: cast[j].name, state: sol[j] ? '卧底' : '好人',
-  })));
+  const isSpyJ = !!sol[j];
+  const lblBad = labelFor('bad', true);
+  const lblGood = labelFor('good', true);
+  const specs = theme.specific || [];
+  if (specs[0] && isSpyJ) {
+    options.push(templ(specs[0], { name: cast[j].name, state: lblBad }));
+  }
+  if (specs[1] && !isSpyJ) {
+    options.push(templ(specs[1], { name: cast[j].name, state: lblGood }));
+  }
+  if (specs[2]) {
+    options.push(templ(specs[2], { name: cast[j].name, state: isSpyJ ? lblBad : lblGood }));
+  }
 
   return options.length ? pick(options) : null;
 }
@@ -1464,14 +2523,29 @@ function generateDirectClue(i, cast, sol, theme) {
 // ------------- CHAINED CLUES (Act 2/3) -------------
 function generateChainedClue(i, cast, sol, theme) {
   const types = [];
-  if (theme.chainBNeighbors) types.push('bn');
+  // Weighted: bn (A says C's neighborhood has X) is the requested high-density chain.
+  // In hard (rows>=5), give it 4× weight; otherwise 2× to keep it prominent.
+  const isHard = state.rows >= 5;
+  const bnWeight = isHard ? 4 : 2;
+  if (theme.chainBNeighbors) for (let k = 0; k < bnWeight; k++) types.push('bn');
   if (theme.chainTriSum)     types.push('tri');
   if (theme.chainSameAsMe)   types.push('same');
   if (theme.chainMoreThanMe) types.push('more');
   if (theme.chainLessThanMe) types.push('less');
-  if (theme.chainBRow)       types.push('brow');
-  if (theme.chainBCol)       types.push('bcol');
+  // De-emphasize chainBRow/chainBCol in hard — these are "我说 B 那一行有 X"
+  // which is still row/col-shaped reasoning. Add only if not hard.
+  if (theme.chainBRow && !isHard) types.push('brow');
+  if (theme.chainBCol && !isHard) types.push('bcol');
+  if (theme.chainBRow && isHard)  types.push('brow'); // 1× weight in hard
+  if (theme.chainBCol && isHard)  types.push('bcol');
+  // Cross-type chains for harder reasoning — keep at base weight
+  if (theme.chainCrossEqGB)         types.push('crossEqGB');
+  if (theme.chainSameGoodNeighbor)  types.push('sameGood');
+  if (theme.chainCommonGood)        types.push('commonGood');
+  if (theme.chainCommonBad)         types.push('commonBad');
   if (types.length === 0) return null;
+  const lblGood = labelFor('good', true);
+  const lblBad = labelFor('bad', true);
 
   // Try a few times — some types need certain conditions
   for (let attempt = 0; attempt < 8; attempt++) {
@@ -1537,8 +2611,687 @@ function generateChainedClue(i, cast, sol, theme) {
       for (let rr = 0; rr < state.rows; rr++) if (sol[rcToIdx(rr, bc)]) n++;
       return templ(pick(theme.chainBCol), { B: cast[b].name, n });
     }
+
+    // === New cross-character chains ===
+
+    // Cross-equality: my good count === B's bad count
+    if (type === 'crossEqGB') {
+      const myGood = countGoodNeighbors(i, sol);
+      const candidates = [];
+      for (let j = 0; j < state.total; j++) {
+        if (j === i) continue;
+        if (countBadNeighbors(j, sol) === myGood && neighborsOf(j).length > 0) candidates.push(j);
+      }
+      if (!candidates.length) continue;
+      const b = pick(candidates);
+      return templ(pick(theme.chainCrossEqGB), { B: cast[b].name, labelGood: lblGood, labelBad: lblBad });
+    }
+
+    // Same good neighbor count between me and B
+    if (type === 'sameGood') {
+      const myGood = countGoodNeighbors(i, sol);
+      const candidates = [];
+      for (let j = 0; j < state.total; j++) {
+        if (j === i) continue;
+        if (countGoodNeighbors(j, sol) === myGood && neighborsOf(j).length > 0) candidates.push(j);
+      }
+      if (!candidates.length) continue;
+      const b = pick(candidates);
+      return templ(pick(theme.chainSameGoodNeighbor), { B: cast[b].name, labelGood: lblGood });
+    }
+
+    // Common-neighbors count of "good" between me and B
+    if (type === 'commonGood') {
+      const others = []; for (let j = 0; j < state.total; j++) if (j !== i) others.push(j);
+      const eligibles = others.filter(j => commonNeighbors(i, j).length >= 1);
+      if (!eligibles.length) continue;
+      const b = pick(eligibles);
+      const common = commonNeighbors(i, b);
+      const n = common.filter(idx => !sol[idx]).length;
+      return templ(pick(theme.chainCommonGood), { B: cast[b].name, n, labelGood: lblGood });
+    }
+
+    // Common-neighbors count of "bad" between me and B
+    if (type === 'commonBad') {
+      const others = []; for (let j = 0; j < state.total; j++) if (j !== i) others.push(j);
+      const eligibles = others.filter(j => commonNeighbors(i, j).length >= 1);
+      if (!eligibles.length) continue;
+      const b = pick(eligibles);
+      const common = commonNeighbors(i, b);
+      const n = common.filter(idx => sol[idx]).length;
+      return templ(pick(theme.chainCommonBad), { B: cast[b].name, n, labelBad: lblBad });
+    }
   }
   return null;
+}
+
+// === Relationship clue generator (Act 4 primary) ===
+// Pulls a pair/bond from the chapter's intro and reveals the truth-status
+// of that edge (both bad / both good / exactly one bad).
+function generateRelationshipClue(i, cast, sol, ch) {
+  const pairs = (ch.intro || []).filter(s => s.kind === 'pair' || s.kind === 'bond');
+  if (!pairs.length) return null;
+  const nameToIdx = new Map(cast.map((c, idx) => [c.name, idx]));
+  const eligible = pairs.filter(p => nameToIdx.has(p.a) && nameToIdx.has(p.b));
+  if (!eligible.length) return null;
+  const p = pick(eligible);
+  const aIdx = nameToIdx.get(p.a);
+  const bIdx = nameToIdx.get(p.b);
+  const aBad = !!sol[aIdx];
+  const bBad = !!sol[bIdx];
+  const lblBad = labelFor('bad', true);
+  const lblGood = labelFor('good', true);
+  if (aBad && bBad) {
+    return `${p.a} 跟 ${p.b}——${p.link}。\n两人是一伙的——都是 ${lblBad}。`;
+  } else if (!aBad && !bBad) {
+    return `${p.a} 跟 ${p.b}——${p.link}。\n这一对，查过了——都 ${lblGood}。`;
+  } else {
+    return `${p.a} 跟 ${p.b}——${p.link}。\n两人之中只有一个，是 ${lblBad}。`;
+  }
+}
+
+// === Act 4 (verdict) statement generation ===
+// Design goal: EVERY character in cast must be "covered" by at least one informative
+// statement (relationship pair OR self-attest OR being-named-as subject). No fluff.
+function generateVerdictStatements(cast, sol, theme, ch) {
+  const N = cast.length;
+  const out = Array(N).fill(null);
+  const used = new Set();
+  const covered = new Set();  // names mentioned by some informative clue
+  const nameToIdx = new Map(cast.map((c, idx) => [c.name, idx]));
+  const lblBad = labelFor('bad', true);
+  const lblGood = labelFor('good', true);
+
+  // Given a target, build a list of valid templates matching a CLAIMED state
+  // (truthful or lying — caller decides).
+  function specificForClaim(targetIdx, claimAsSpy) {
+    const specs = theme.specific || [];
+    const list = [];
+    if (specs[0] && claimAsSpy)  list.push({ t: specs[0], state: lblBad });
+    if (specs[1] && !claimAsSpy) list.push({ t: specs[1], state: lblGood });
+    for (let k = 2; k < specs.length; k++) {
+      list.push({ t: specs[k], state: claimAsSpy ? lblBad : lblGood });
+    }
+    return list.length ? pick(list) : null;
+  }
+  // Speaker speaks about target — may lie if speaker is a spy
+  function specificFor(speakerIdx, targetIdx) {
+    const isSpyTarget = !!sol[targetIdx];
+    const speakerBad = !!sol[speakerIdx];
+    const willLie = speakerBad && rand() < 0.45;
+    const claimAsSpy = willLie ? !isSpyTarget : isSpyTarget;
+    return specificForClaim(targetIdx, claimAsSpy);
+  }
+
+  // --- Pass 1: one relationship clue per eligible pair/bond (both members in cast) ---
+  // Bond `correlation` (shown as ground truth in 关系 modal):
+  //   'same'     → joint identity (statement reveals which: both-bad or both-good)
+  //   'opposite' → opposing identities (statement names which one is the spy)
+  //   undefined  → 暧昧 / pair default (current 3-way: both / none / one)
+  const pairs = (ch.intro || []).filter(s => s.kind === 'pair' || s.kind === 'bond');
+  const eligiblePairs = shuffle(pairs.filter(p => nameToIdx.has(p.a) && nameToIdx.has(p.b)));
+  // Chapter-toned relationship phrasings
+  const REL = {
+    office: {
+      both:    (a,b,link) => `${a} 跟 ${b}——${link}。两人都是 ${lblBad}。`,
+      none:    (a,b,link) => `${a} 跟 ${b}——${link}。这一对，都 ${lblGood}。`,
+      one:     (a,b,link) => `${a} 跟 ${b}——${link}。其中只有一个 ${lblBad}。`,
+      oneNamed:(spy,clean,link) => `${spy} 跟 ${clean}——${link}。${spy} 是 ${lblBad}，${clean} 干净。`,
+    },
+    manor: {
+      both:    (a,b,link) => `${a} 跟 ${b}——${link}。这一对，皆是 ${lblBad}。`,
+      none:    (a,b,link) => `${a} 跟 ${b}——${link}。这一对，都 ${lblGood}。`,
+      one:     (a,b,link) => `${a} 跟 ${b}——${link}。两位之中，只有一位 ${lblBad}。`,
+      oneNamed:(spy,clean,link) => `${spy} 跟 ${clean}——${link}。动手的——是 ${spy}。${clean} 干净。`,
+    },
+    heart: {
+      both:    (a,b,link) => `${a} 跟 ${b}——${link}。两人，都是 ${lblBad}。`,
+      none:    (a,b,link) => `${a} 跟 ${b}——${link}。两人都 ${lblGood}。`,
+      one:     (a,b,link) => `${a} 跟 ${b}——${link}。这一对里，只有一个 ${lblBad}。`,
+      oneNamed:(spy,clean,link) => `${spy} 跟 ${clean}——${link}。写假信的是 ${spy}。${clean} 是真心。`,
+    },
+    court: {
+      both:    (a,b,link) => `${a} 跟 ${b}——${link}。两位皆是 ${lblBad}。`,
+      none:    (a,b,link) => `${a} 跟 ${b}——${link}。两位都 ${lblGood}。`,
+      one:     (a,b,link) => `${a} 跟 ${b}——${link}。这一对里，只有一位 ${lblBad}。`,
+      oneNamed:(spy,clean,link) => `${spy} 跟 ${clean}——${link}。动毒之人是 ${spy}。${clean} 干净。`,
+    },
+    threshold: {
+      both:    (a,b,link) => `${a} 跟 ${b}——${link}。两位皆是 ${lblBad}。`,
+      none:    (a,b,link) => `${a} 跟 ${b}——${link}。两位都还有影子——都 ${lblGood}。`,
+      one:     (a,b,link) => `${a} 跟 ${b}——${link}。两位之中——只有一位 ${lblBad}。`,
+      oneNamed:(spy,clean,link) => `${spy} 跟 ${clean}——${link}。没影子的——是 ${spy}。${clean} 还活着。`,
+    },
+  };
+  const rel = REL[state.chapterId] || REL.office;
+  // Typed bonds (同心/对立) get their correlation directly from the 关系 modal — emitting
+  // a "two are both X" statement would just hand the player the answer. Skip entirely.
+  // For untyped/暧昧 edges:
+  //   · CAP total emissions at 4 (chapters like Court have 7+ eligible edges; without
+  //     a cap, Pass 1 alone fills nearly half the puzzle with 2-char identity reveals)
+  //   · 'both'/'none' outcomes (direct 2-char reveals) skip ~50% to favor chain-style
+  //     'one' outcomes that require Pass 2's innocent self-attest to disambiguate
+  const PASS1_CAP = 4;
+  let pass1Emitted = 0;
+  for (const p of eligiblePairs) {
+    if (p.correlation === 'same' || p.correlation === 'opposite') continue;
+    if (pass1Emitted >= PASS1_CAP) break;
+    const aIdx = nameToIdx.get(p.a), bIdx = nameToIdx.get(p.b);
+    const aBad = !!sol[aIdx], bBad = !!sol[bIdx];
+    const realOutcome = (aBad && bBad) ? 'both' : (!aBad && !bBad) ? 'none' : 'one';
+    // Skip direct 2-char reveals half the time to favor chain reasoning.
+    if (realOutcome !== 'one' && rand() < 0.5) continue;
+    const free = [], freeOut = [];
+    for (let i = 0; i < N; i++) {
+      if (used.has(i)) continue;
+      free.push(i);
+      if (i !== aIdx && i !== bIdx) freeOut.push(i);
+    }
+    if (!free.length) break;
+    const speakerIdx = freeOut.length ? pick(freeOut) : pick(free);
+    const speakerIsBad = !!sol[speakerIdx];
+    const willLie = speakerIsBad && rand() < 0.45;
+    let stated = realOutcome;
+    if (willLie) {
+      const alts = ['both', 'none', 'one'].filter(o => o !== realOutcome);
+      stated = pick(alts);
+    }
+    out[speakerIdx] = rel[stated](p.a, p.b, p.link);
+    used.add(speakerIdx);
+    covered.add(p.a);
+    covered.add(p.b);
+    pass1Emitted++;
+  }
+
+  // Chapter-toned templates (each chapter has its own voice for these clue types)
+  const TONES = {
+    office: {
+      profGood: (p, g) => `我们 ${p} 这一类——大家都 ${g}。可以划掉。`,
+      profBad:  (p, b) => `${p} 们——一个不落，都是 ${b}。`,
+      total:    (n, b) => n === 0 ? `我数过——这一群里，没有 ${b}。` : n === 1 ? `我数过——这一群里，只有一个 ${b}。` : `我数过——这一群里，一共 ${n} 个 ${b}。`,
+      selfBad:  (n, b) => `我身边——${n} 双 ${b}。审计悄悄给我看的。`,
+      selfGood: (n, g) => `我身边——${n} 个 ${g}。我数过。`,
+      otherBad: (B, n, b) => `${B} 身边——${n} 双 ${b}。座位图上我看过。`,
+      otherGood:(B, n, g) => `${B} 身边——${n} 个 ${g}。我替他数过。`,
+      cross:    (px, py, kind, rel, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        if (rel === 'eq')   return `${px} 跟 ${py}——${lbl} 一样多。HR 的表上写着。`;
+        if (rel === 'more') return `${px} 这一拨的 ${lbl} 比 ${py} 多。我数过两遍。`;
+        return                       `${px} 这一拨的 ${lbl} 比 ${py} 少。`;
+      },
+      nbhCross: (A, B, kind, rel, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        if (rel === 'eq')   return `${A} 身边的 ${lbl}，跟 ${B} 身边一样多。我对过。`;
+        if (rel === 'more') return `${A} 身边的 ${lbl}，比 ${B} 那边多。`;
+        return                       `${A} 身边的 ${lbl}，比 ${B} 那边少。`;
+      },
+      commonNbh: (A, B, n, kind, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        return `${A} 跟 ${B} 共同的同事里——${n} 个 ${lbl}。`;
+      },
+      unionNbh:  (names, n, kind, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        return `${names} 那一片——一共 ${n} 个 ${lbl}。`;
+      },
+    },
+    manor: {
+      profGood: (p, g) => `这宅子的 ${p} 们——一个都 ${g}。我用项上人头担保。`,
+      profBad:  (p, b) => `这宅子的 ${p}——一个不漏，全都是 ${b}。`,
+      total:    (n, b) => n === 0 ? `我留心了一夜——一双不该动的手，都没有。` : n === 1 ? `我留心了一夜——动手的，只有一双。` : `我留心了一夜——动手的，一共 ${n} 双。`,
+      selfBad:  (n, b) => `我留心了——我身侧 ${n} 双 ${b}。`,
+      selfGood: (n, g) => `我身侧——${n} 位 ${g}。我用项上人头担保。`,
+      otherBad: (B, n, b) => `${B} 身侧——${n} 双 ${b}。我留心过。`,
+      otherGood:(B, n, g) => `${B} 身侧——${n} 位 ${g}。我替他作证。`,
+      cross:    (px, py, kind, rel, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        if (rel === 'eq')   return `${px} 这一类跟 ${py} 这一类——${lbl} 数目一致。`;
+        if (rel === 'more') return `${px} 这一类的 ${lbl} 比 ${py} 多——我亲眼留意的。`;
+        return                       `${px} 这一类的 ${lbl} 比 ${py} 少——这点我敢说。`;
+      },
+      nbhCross: (A, B, kind, rel, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        if (rel === 'eq')   return `${A} 身侧的 ${lbl}，跟 ${B} 那一边——数目一致。`;
+        if (rel === 'more') return `${A} 身侧的 ${lbl}，比 ${B} 那一边多。`;
+        return                       `${A} 身侧的 ${lbl}，比 ${B} 那一边少。`;
+      },
+      commonNbh: (A, B, n, kind, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        return `${A} 跟 ${B} 之间共有的几位——${n} 位 ${lbl}。`;
+      },
+      unionNbh:  (names, n, kind, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        return `${names} 那一带——一共 ${n} 位 ${lbl}。`;
+      },
+    },
+    heart: {
+      profGood: (p, g) => `我们这群 ${p}——其实都 ${g}。`,
+      profBad:  (p, b) => `${p} 这一拨——全都参与了，一个不剩。`,
+      total:    (n, b) => n === 0 ? `Lila 私下告诉我——这次没人写假信。` : n === 1 ? `Lila 私下告诉我——只有一封是假的。` : `Lila 私下告诉我——一共 ${n} 封假的。`,
+      selfBad:  (n, b) => `我身边——${n} 个写 ${b} 的。这话我憋了一夜。`,
+      selfGood: (n, g) => `我身边——${n} 个是 ${g} 的。我看人不会错。`,
+      otherBad: (B, n, b) => `${B} 身边——${n} 个写 ${b}。我看着的。`,
+      otherGood:(B, n, g) => `${B} 身边——${n} 个 ${g}。这一拨我替他数过。`,
+      cross:    (px, py, kind, rel, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        if (rel === 'eq')   return `${px} 跟 ${py} 那两拨——${lbl} 的人，一样多。`;
+        if (rel === 'more') return `${px} 那拨 ${lbl} 比 ${py} 多——我替 Lila 数过。`;
+        return                       `${px} 那拨 ${lbl} 比 ${py} 少。`;
+      },
+      nbhCross: (A, B, kind, rel, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        if (rel === 'eq')   return `${A} 身边的 ${lbl}，跟 ${B} 身边一样多——我比着看的。`;
+        if (rel === 'more') return `${A} 身边的 ${lbl}，比 ${B} 那边多。`;
+        return                       `${A} 身边的 ${lbl}，比 ${B} 那边少。`;
+      },
+      commonNbh: (A, B, n, kind, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        return `${A} 跟 ${B} 共同认识的几个——${n} 个 ${lbl}。`;
+      },
+      unionNbh:  (names, n, kind, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        return `${names} 那一圈——一共 ${n} 个 ${lbl}。`;
+      },
+    },
+    court: {
+      profGood: (p, g) => `奴婢们这一类——都 ${g}。奴婢敢以娘娘恩泽担保。`,
+      profBad:  (p, b) => `${p} 这一类——一个不留，皆是 ${b}。`,
+      total:    (n, b) => n === 0 ? `奴婢私下数过——没有一双动毒的手。` : n === 1 ? `奴婢私下数过——动手的，只有一位。` : `奴婢私下数过——动手的，一共 ${n} 位。`,
+      selfBad:  (n, b) => `奴婢身侧 ${n} 位 ${b}——奴婢这一夜数过的。`,
+      selfGood: (n, g) => `奴婢身侧 ${n} 位 ${g}——奴婢敢以娘娘恩泽担保。`,
+      otherBad: (B, n, b) => `${B} 身侧——${n} 位 ${b}。奴婢替娘娘瞧过。`,
+      otherGood:(B, n, g) => `${B} 身侧——${n} 位 ${g}。奴婢敢以人头担保。`,
+      cross:    (px, py, kind, rel, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        if (rel === 'eq')   return `${px} 这一类跟 ${py}——${lbl} 之数，一致。奴婢私下数过的。`;
+        if (rel === 'more') return `${px} 这一类的 ${lbl}，比 ${py} 多——奴婢心里有数。`;
+        return                       `${px} 这一类的 ${lbl}，比 ${py} 少——奴婢敢以娘娘恩泽担保。`;
+      },
+      nbhCross: (A, B, kind, rel, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        if (rel === 'eq')   return `${A} 身侧的 ${lbl}，跟 ${B} 那一处——一样多。奴婢私下对过的。`;
+        if (rel === 'more') return `${A} 身侧的 ${lbl}，比 ${B} 那一处多。`;
+        return                       `${A} 身侧的 ${lbl}，比 ${B} 那一处少。`;
+      },
+      commonNbh: (A, B, n, kind, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        return `${A} 跟 ${B} 共同侍奉的几位——${n} 位 ${lbl}。`;
+      },
+      unionNbh:  (names, n, kind, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        return `${names} 那一处——一共 ${n} 位 ${lbl}。奴婢这一夜瞧过的。`;
+      },
+    },
+    threshold: {
+      profGood: (p, g) => `我们这 ${p} 们——都还有影子。`,
+      profBad:  (p, b) => `${p} 这一类——一个不漏，都没有影子了。`,
+      total:    (n, b) => n === 0 ? `今夜的酒窖——没有 ${b}。这群人都还活着。` : n === 1 ? `今夜的酒窖——只有一个 ${b}。` : `今夜的酒窖——一共 ${n} 个 ${b}。`,
+      selfBad:  (n, b) => `我身侧——${n} 位 ${b}。蜡烛照过的。`,
+      selfGood: (n, g) => `我身侧——${n} 位还有影子。蜡烛照过的。`,
+      otherBad: (B, n, b) => `${B} 身侧——${n} 位 ${b}。我替他看过镜子里的人。`,
+      otherGood:(B, n, g) => `${B} 身侧——${n} 位还有影子。我数过。`,
+      cross:    (px, py, kind, rel, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        if (rel === 'eq')   return `${px} 跟 ${py}——${lbl} 的人，一样多。蜡烛照过的。`;
+        if (rel === 'more') return `${px} 那一拨的 ${lbl}，比 ${py} 多——这一夜我数过。`;
+        return                       `${px} 那一拨的 ${lbl}，比 ${py} 少。`;
+      },
+      nbhCross: (A, B, kind, rel, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        if (rel === 'eq')   return `${A} 身侧的 ${lbl}，跟 ${B} 那一处一样多。镜子里我看过。`;
+        if (rel === 'more') return `${A} 身侧的 ${lbl}，比 ${B} 那一处多。`;
+        return                       `${A} 身侧的 ${lbl}，比 ${B} 那一处少。`;
+      },
+      commonNbh: (A, B, n, kind, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        return `${A} 跟 ${B} 都挨着的几位——${n} 位 ${lbl}。`;
+      },
+      unionNbh:  (names, n, kind, gl, bl) => {
+        const lbl = kind === 'good' ? gl : bl;
+        return `${names} 那一片——一共 ${n} 位 ${lbl}。蜡烛照过的。`;
+      },
+    },
+  };
+  const tone = TONES[state.chapterId] || TONES.office;
+
+  // --- Pass 1.5: profession-universal — STRONG group-reveal clue.
+  //     Cap at ≤1 emission per Act 4, with ~25% random chance to even attempt.
+  //     Spy speakers may still flip the claim.
+  if (rand() < 0.25) {
+    const profGroups = {};
+    for (let i = 0; i < N; i++) {
+      const role = cast[i].role;
+      (profGroups[role] = profGroups[role] || []).push(i);
+    }
+    const qualifying = Object.entries(profGroups).filter(([_, idxs]) => {
+      if (idxs.length < 2) return false;
+      const spies = idxs.filter(i => sol[i]).length;
+      return spies === 0 || spies === idxs.length;
+    });
+    if (qualifying.length > 0) {
+      const free = [];
+      for (let i = 0; i < N; i++) if (!used.has(i)) free.push(i);
+      if (free.length) {
+        const [prof, idxs] = pick(qualifying);
+        const spies = idxs.filter(i => sol[i]).length;
+        const truthAllGood = spies === 0;
+        const speaker = pick(free);
+        const willLie = !!sol[speaker] && rand() < 0.45;
+        const claimAllGood = willLie ? !truthAllGood : truthAllGood;
+        out[speaker] = claimAllGood ? tone.profGood(prof, lblGood) : tone.profBad(prof, lblBad);
+        used.add(speaker);
+        idxs.forEach(i => covered.add(cast[i].name));
+      }
+    }
+  }
+
+  // --- Pass 1.55: cross-profession comparison clues ───────────────────
+  // "X 职业的好人/内鬼 跟 Y 职业的 一样多 / 比 Y 多 / 比 Y 少"
+  // Constrains group counts without revealing individuals. Spy speakers
+  // may flip the relation (eq ↔ more ↔ less) ~45% of the time.
+  {
+    const profIdxsForCross = {};
+    for (let i = 0; i < N; i++) {
+      const role = cast[i].role;
+      (profIdxsForCross[role] = profIdxsForCross[role] || []).push(i);
+    }
+    // Eligible: only professions with ≥2 members in this Act 4 cast.
+    const eligibleProfs = Object.entries(profIdxsForCross).filter(([_, idxs]) => idxs.length >= 2);
+    if (eligibleProfs.length >= 2 && tone.cross) {
+      const crossCount = 1 + Math.floor(rand() * 2); // 1-2 cross clues
+      const seenPairs = new Set();
+      for (let k = 0; k < crossCount; k++) {
+        const free = [];
+        for (let i = 0; i < N; i++) if (!used.has(i)) free.push(i);
+        if (!free.length) break;
+        // Pick two distinct professions; avoid repeating same pair.
+        let px = null, py = null, ixs = null, iys = null;
+        for (let attempt = 0; attempt < 8; attempt++) {
+          const shuffled = shuffle([...eligibleProfs]);
+          const [pa, ia] = shuffled[0];
+          const [pb, ib] = shuffled[1];
+          const key = [pa, pb].sort().join('|');
+          if (seenPairs.has(key)) continue;
+          px = pa; py = pb; ixs = ia; iys = ib;
+          seenPairs.add(key);
+          break;
+        }
+        if (!px) break;
+        const speaker = pick(free);
+        const speakerBad = !!sol[speaker];
+        const willLie = speakerBad && rand() < 0.45;
+        // Pick kind ('good' or 'bad') randomly
+        const kind = rand() < 0.5 ? 'good' : 'bad';
+        const vX = kind === 'good' ? ixs.filter(i => !sol[i]).length : ixs.filter(i =>  sol[i]).length;
+        const vY = kind === 'good' ? iys.filter(i => !sol[i]).length : iys.filter(i =>  sol[i]).length;
+        let rel = vX === vY ? 'eq' : (vX > vY ? 'more' : 'less');
+        if (willLie) {
+          const alts = ['eq', 'more', 'less'].filter(r => r !== rel);
+          rel = pick(alts);
+        }
+        out[speaker] = tone.cross(px, py, kind, rel, lblGood, lblBad);
+        used.add(speaker);
+        // Mark every member of both groups as covered
+        ixs.forEach(i => covered.add(cast[i].name));
+        iys.forEach(i => covered.add(cast[i].name));
+      }
+    }
+  }
+
+  // --- Pass 1.6: total spy count among this Act 4 cast ---
+  const totalBad = sol.filter(x => x).length;
+  {
+    const free = [];
+    for (let i = 0; i < N; i++) if (!used.has(i)) free.push(i);
+    if (free.length) {
+      const speaker = pick(free);
+      // LIE: spy speaker may give wrong count (±1, ±2)
+      const willLie = !!sol[speaker] && rand() < 0.45;
+      let claimedCount = totalBad;
+      if (willLie) {
+        const candidates = [Math.max(0, totalBad - 1), Math.max(0, totalBad - 2), totalBad + 1, totalBad + 2]
+          .filter(n => n !== totalBad && n >= 0 && n <= N);
+        if (candidates.length) claimedCount = pick(candidates);
+      }
+      out[speaker] = tone.total(claimedCount, lblBad);
+      used.add(speaker);
+    }
+  }
+
+  // --- Pass 1.7: neighborhood-chain clues (PRIMARY closed-loop reasoning) ---
+  // Variants — all use the same lie mechanic (spy speaker ~45% misreports):
+  //   self      — "我身边 X 好/坏"
+  //   other     — "B 身边 X 好/坏" (third-party about target)
+  //   nbhCross  — "A 身边的 X 跟 B 身边一样多 / 多 / 少"
+  //   common    — "A 跟 B 共同邻居里 X" (intersection)
+  //   union     — "A 和 B 那一片 共 X" (combined neighborhood, union)
+  // 5–7 emissions per Act 4. Each variant covers different cast members in different ways,
+  // so the puzzle stays deducible without the same clue shape stacking.
+  {
+    const offBy = (n, max, willLie) => {
+      if (!willLie) return n;
+      const cands = [n-1, n+1, n-2, n+2].filter(v => v !== n && v >= 0 && v <= max);
+      return cands.length ? pick(cands) : n;
+    };
+    const flipRel = (r) => pick(['eq', 'more', 'less'].filter(x => x !== r));
+    const otherIdxs = (excl) => {
+      const out = [];
+      for (let j = 0; j < N; j++) if (!excl.includes(j)) out.push(j);
+      return out;
+    };
+
+    const emitSelf = (sp, willLie) => {
+      const nbrs = allNeighbors(sp);
+      if (nbrs.length === 0) return false;
+      const trueSpy = nbrs.filter(n => sol[n]).length;
+      const claimedSpy = offBy(trueSpy, nbrs.length, willLie);
+      const showBad = rand() < 0.5;
+      out[sp] = showBad
+        ? tone.selfBad(claimedSpy, lblBad)
+        : tone.selfGood(nbrs.length - claimedSpy, lblGood);
+      nbrs.forEach(n => covered.add(cast[n].name));
+      return true;
+    };
+
+    const emitOther = (sp, willLie) => {
+      const cands = otherIdxs([sp]).filter(b => allNeighbors(b).length > 0);
+      if (!cands.length) return false;
+      const b = pick(cands);
+      const nbrs = allNeighbors(b);
+      const trueSpy = nbrs.filter(n => sol[n]).length;
+      const claimedSpy = offBy(trueSpy, nbrs.length, willLie);
+      const showBad = rand() < 0.5;
+      const B = cast[b].name;
+      out[sp] = showBad
+        ? tone.otherBad(B, claimedSpy, lblBad)
+        : tone.otherGood(B, nbrs.length - claimedSpy, lblGood);
+      covered.add(B);
+      nbrs.forEach(n => covered.add(cast[n].name));
+      return true;
+    };
+
+    const emitNbhCross = (sp, willLie) => {
+      // Speaker compares two characters' neighborhood counts (or self vs other).
+      const useSelf = rand() < 0.5 && allNeighbors(sp).length > 0;
+      const candA = useSelf ? sp : pick(otherIdxs([sp]).filter(i => allNeighbors(i).length > 0));
+      if (candA === undefined) return false;
+      const candB = pick(otherIdxs([sp, candA]).filter(i => allNeighbors(i).length > 0));
+      if (candB === undefined) return false;
+      const kind = rand() < 0.5 ? 'good' : 'bad';
+      const countOf = (i) => {
+        const nbrs = allNeighbors(i);
+        return kind === 'good' ? nbrs.filter(n => !sol[n]).length : nbrs.filter(n => sol[n]).length;
+      };
+      const vA = countOf(candA), vB = countOf(candB);
+      let rel = vA === vB ? 'eq' : (vA > vB ? 'more' : 'less');
+      if (willLie) rel = flipRel(rel);
+      const A = useSelf ? '我' : cast[candA].name;
+      out[sp] = tone.nbhCross(A, cast[candB].name, kind, rel, lblGood, lblBad);
+      if (!useSelf) covered.add(cast[candA].name);
+      covered.add(cast[candB].name);
+      return true;
+    };
+
+    const emitCommon = (sp, willLie) => {
+      const useSelf = rand() < 0.5;
+      const candA = useSelf ? sp : pick(otherIdxs([sp]));
+      if (candA === undefined) return false;
+      const candidates = otherIdxs([sp, candA]).filter(b => commonNeighbors(candA, b).length >= 1);
+      if (!candidates.length) return false;
+      const candB = pick(candidates);
+      const common = commonNeighbors(candA, candB);
+      const kind = rand() < 0.5 ? 'good' : 'bad';
+      const trueN = kind === 'good' ? common.filter(n => !sol[n]).length : common.filter(n => sol[n]).length;
+      const claimed = offBy(trueN, common.length, willLie);
+      const A = useSelf ? '我' : cast[candA].name;
+      out[sp] = tone.commonNbh(A, cast[candB].name, claimed, kind, lblGood, lblBad);
+      if (!useSelf) covered.add(cast[candA].name);
+      covered.add(cast[candB].name);
+      common.forEach(n => covered.add(cast[n].name));
+      return true;
+    };
+
+    const emitUnion = (sp, willLie) => {
+      // Combined surrounding cast around two characters (union of neighborhoods).
+      const useSelf = rand() < 0.5;
+      const candA = useSelf ? sp : pick(otherIdxs([sp]));
+      if (candA === undefined) return false;
+      const candB = pick(otherIdxs([sp, candA]));
+      if (candB === undefined) return false;
+      const nbrA = new Set(allNeighbors(candA));
+      const nbrB = allNeighbors(candB);
+      const union = new Set(nbrA);
+      nbrB.forEach(n => union.add(n));
+      union.delete(candA); union.delete(candB);
+      if (union.size < 2) return false;
+      const kind = rand() < 0.5 ? 'good' : 'bad';
+      const trueN = [...union].filter(n => kind === 'good' ? !sol[n] : sol[n]).length;
+      const claimed = offBy(trueN, union.size, willLie);
+      const names = useSelf ? `我和 ${cast[candB].name}` : `${cast[candA].name} 和 ${cast[candB].name}`;
+      out[sp] = tone.unionNbh(names, claimed, kind, lblGood, lblBad);
+      if (!useSelf) covered.add(cast[candA].name);
+      covered.add(cast[candB].name);
+      union.forEach(n => covered.add(cast[n].name));
+      return true;
+    };
+
+    const variants = ['self', 'other', 'nbhCross', 'common', 'union'];
+    const chainCount = 5 + Math.floor(rand() * 3); // 5-7 chain clues
+    for (let k = 0; k < chainCount; k++) {
+      const free = [];
+      for (let i = 0; i < N; i++) if (!used.has(i)) free.push(i);
+      if (!free.length) break;
+      const speaker = pick(free);
+      const willLie = !!sol[speaker] && rand() < 0.45;
+      // Try up to 4 random variants until one emits successfully
+      let placed = false;
+      const tryOrder = shuffle(variants);
+      for (const v of tryOrder) {
+        const fn = v === 'self' ? emitSelf
+                : v === 'other' ? emitOther
+                : v === 'nbhCross' ? emitNbhCross
+                : v === 'common' ? emitCommon
+                : emitUnion;
+        if (fn(speaker, willLie)) { placed = true; break; }
+      }
+      if (placed) used.add(speaker);
+    }
+  }
+
+  // --- Pass 2: innocent self-attests in "exactly one" pairs (disambiguation) ---
+  for (const p of eligiblePairs) {
+    const aIdx = nameToIdx.get(p.a), bIdx = nameToIdx.get(p.b);
+    const aBad = !!sol[aIdx], bBad = !!sol[bIdx];
+    if (aBad === bBad) continue;
+    const innocentIdx = aBad ? bIdx : aIdx;
+    if (!used.has(innocentIdx)) {
+      out[innocentIdx] = pick(theme.selfClean);
+      used.add(innocentIdx);
+      covered.add(cast[innocentIdx].name);
+    }
+  }
+
+  // --- Pass 3: fill remaining cells. Bias toward chain clues (self-neighborhood)
+  //     over direct指认 (specificFor) — direct identity claims are the most "spoiling"
+  //     form of clue, so they're a fallback only when the speaker has no neighbors.
+  //     This keeps Act 4 reasoning chained through the relationship/anchor network.
+  const emitSelfNbh = (i) => {
+    const nbrs = allNeighbors(i);
+    if (nbrs.length === 0) return false;
+    const trueSpyN = nbrs.filter(n => sol[n]).length;
+    const willLie = !!sol[i] && rand() < 0.45;
+    let claimedSpy = trueSpyN;
+    if (willLie) {
+      const max = nbrs.length;
+      const cands = [trueSpyN - 1, trueSpyN + 1, trueSpyN - 2, trueSpyN + 2]
+        .filter(n => n !== trueSpyN && n >= 0 && n <= max);
+      if (cands.length) claimedSpy = pick(cands);
+    }
+    const showBad = rand() < 0.5;
+    const claimedGood = nbrs.length - claimedSpy;
+    out[i] = showBad ? tone.selfBad(claimedSpy, lblBad) : tone.selfGood(claimedGood, lblGood);
+    nbrs.forEach(n => covered.add(cast[n].name));
+    return true;
+  };
+  for (let i = 0; i < N; i++) {
+    if (used.has(i)) continue;
+    // Strong preference: self-neighborhood (closed-loop chain clue, 80%)
+    if (rand() < 0.80 && emitSelfNbh(i)) { used.add(i); continue; }
+    // Fallback: targeted specific cue (kept truthful for innocents; spy may lie)
+    const others = [], uncovered = [];
+    for (let j = 0; j < N; j++) {
+      if (j === i) continue;
+      others.push(j);
+      if (!covered.has(cast[j].name)) uncovered.push(j);
+    }
+    const target = uncovered.length ? pick(uncovered) : pick(others);
+    const sp = specificFor(i, target);
+    if (sp) {
+      out[i] = templ(sp.t, { name: cast[target].name, state: sp.state });
+      covered.add(cast[target].name);
+    } else if (!sol[i]) {
+      out[i] = pick(theme.selfClean);
+      covered.add(cast[i].name);
+    } else if (emitSelfNbh(i)) {
+      // Last-ditch chain fallback for a spy with no specific template
+    } else {
+      out[i] = pick(theme.fluff);
+    }
+    used.add(i);
+  }
+
+  // --- Pass 4: ensure full coverage. Prefer indirect coverage — pick a
+  //     neighbor of the uncovered char and overwrite their cell with a
+  //     self-neighborhood claim (which implicitly mentions every neighbor).
+  //     Only fall back to direct specific cue if no neighbor is available.
+  for (let j = 0; j < N; j++) {
+    if (covered.has(cast[j].name)) continue;
+    const adjacents = allNeighbors(j);
+    let placed = false;
+    for (const i of shuffle(adjacents)) {
+      if (i === j) continue;
+      if (emitSelfNbh(i)) {
+        covered.add(cast[j].name);
+        placed = true;
+        break;
+      }
+    }
+    if (placed) continue;
+    // Fallback: direct specific cue (rare — only when j has no neighbors)
+    let replaceIdx = -1;
+    for (let i = 0; i < N; i++) {
+      if (i === j) continue;
+      replaceIdx = i;
+      break;
+    }
+    if (replaceIdx < 0) continue;
+    const sp = specificFor(replaceIdx, j);
+    if (sp) {
+      out[replaceIdx] = templ(sp.t, { name: cast[j].name, state: sp.state });
+      covered.add(cast[j].name);
+    }
+  }
+
+  return out;
 }
 
 function generateStatements(cast, sol, theme, diff) {
@@ -1567,8 +3320,14 @@ function generateStatements(cast, sol, theme, diff) {
   const totalSpies = sol.filter(x => x).length;
   tryPlace([...Array(N).keys()], () => templ(pick(theme.total), { n: totalSpies }));
 
-  // (2) per-row counts
-  for (let r = 0; r < state.rows; r++) {
+  // (2) per-row counts — Act 3 (hard, rows>=5) uses ONLY HALF the rows
+  //     to demote "我这一排..." self-references in favor of high-density chain clues.
+  const isHard = state.rows >= 5;
+  const rowOrder = [...Array(state.rows).keys()];
+  const rowsToPlace = isHard
+    ? shuffle(rowOrder).slice(0, Math.ceil(state.rows / 2))
+    : rowOrder;
+  for (const r of rowsToPlace) {
     const inRow = []; let cnt = 0;
     for (let c = 0; c < state.cols; c++) {
       const idx = rcToIdx(r, c); inRow.push(idx);
@@ -1577,8 +3336,12 @@ function generateStatements(cast, sol, theme, diff) {
     tryPlace(inRow, () => templ(pick(theme.rowSpies), { n: cnt }));
   }
 
-  // (3) per-column counts
-  for (let c = 0; c < state.cols; c++) {
+  // (3) per-column counts — same treatment in hard
+  const colOrder = [...Array(state.cols).keys()];
+  const colsToPlace = isHard
+    ? shuffle(colOrder).slice(0, Math.ceil(state.cols / 2))
+    : colOrder;
+  for (const c of colsToPlace) {
     const inCol = []; let cnt = 0;
     for (let r = 0; r < state.rows; r++) {
       const idx = rcToIdx(r, c); inCol.push(idx);
@@ -1587,18 +3350,23 @@ function generateStatements(cast, sol, theme, diff) {
     tryPlace(inCol, () => templ(pick(theme.colSpies), { n: cnt }));
   }
 
-  // (4) profession universal where it holds
-  const profGroups = {};
-  cast.forEach((c, i) => { (profGroups[c.role] = profGroups[c.role] || []).push(i); });
-  Object.entries(profGroups).forEach(([prof, idxs]) => {
-    if (idxs.length < 2) return;
-    const spies = idxs.filter(i => sol[i]).length;
-    if (spies === 0) {
-      tryPlace(idxs, () => templ(pick(theme.profAllGood), { prof }));
-    } else if (spies === idxs.length) {
-      tryPlace(idxs, () => templ(pick(theme.profAllBad), { prof }));
+  // (4) profession universal — STRONG clue ("X 们一个不剩都是内鬼" reveals
+  // an entire role at once). Cap at ≤1 emission per puzzle, and only attempt
+  // in hard (Act 3) with ~25% chance. Easy/normal never get it.
+  if (isHard && rand() < 0.25) {
+    const profGroups = {};
+    cast.forEach((c, i) => { (profGroups[c.role] = profGroups[c.role] || []).push(i); });
+    const qualifying = Object.entries(profGroups).filter(([_, idxs]) => {
+      if (idxs.length < 2) return false;
+      const spies = idxs.filter(i => sol[i]).length;
+      return spies === 0 || spies === idxs.length;
+    });
+    if (qualifying.length > 0) {
+      const [prof, idxs] = pick(qualifying);
+      const allBad = idxs.every(i => sol[i]);
+      tryPlace(idxs, () => templ(pick(allBad ? theme.profAllBad : theme.profAllGood), { prof }));
     }
-  });
+  }
 
   // (5) ~half innocents self-attest
   const freeInnocents = [...Array(N).keys()].filter(i => !sol[i] && !used.has(i));
@@ -1608,10 +3376,10 @@ function generateStatements(cast, sol, theme, diff) {
   // (6) fill remaining with difficulty mix
   for (let i = 0; i < N; i++) {
     if (statements[i]) continue;
-    const r = Math.random();
+    const r = rand();
     if (r < diff.fluffRate) {
       statements[i] = pick(theme.fluff);
-    } else if (diff.chainRate > 0 && Math.random() < diff.chainRate) {
+    } else if (diff.chainRate > 0 && rand() < diff.chainRate) {
       statements[i] = generateChainedClue(i, cast, sol, theme) ||
                       generateDirectClue(i, cast, sol, theme) ||
                       pick(theme.fluff);
@@ -1720,7 +3488,7 @@ function showActList() {
     else card.classList.add('available');
     if (done) card.classList.add('completed');
 
-    const sizes = { easy: '9 人 · 入门', normal: '16 人 · 中等', hard: '20 人 · 全员' };
+    const sizes = { easy: '9 人 · 初判', normal: '16 人 · 中等', hard: '20 人 · 全员', verdict: '嫌疑名单 · 终审' };
     const diffLabel = sizes[level.difficulty] || '';
 
     let statusText = '';
@@ -1800,20 +3568,155 @@ function skipCine() { haptic(10); state.cineIdx = state.cineScenes.length; rende
 function startLevel() {
   const ch = CHAPTERS[state.currentChapterId];
   const level = ch.levels[state.currentLevelIdx];
-  const diff = DIFFICULTY[level.difficulty || 'normal'];
+  const diffKey = level.difficulty || 'normal';
+  const diff = DIFFICULTY[diffKey];
+  const isVerdict = diffKey === 'verdict';
 
-  // set dimensions FIRST so all helpers work
-  state.rows = diff.rows;
-  state.cols = diff.cols;
-  state.total = diff.rows * diff.cols;
+  // (A) Initialize chapter-wide truth + suspect set on chapter switch
+  if (state.chapterId !== ch.id) {
+    state.chapterId = ch.id;
+    // Generate chapter truth deterministically. Constraints:
+    //  · 'same' typed bonds (亲密/师徒/暗婚/MIT 同学) MUST share identity
+    //  · 'opposite' typed bonds (交恶/对立) MUST differ in identity
+    //  · among untyped (mixed/暧昧) edges, want ≥40% mixed-outcome for diversity,
+    //    plus at least one same-outcome edge (both-bad or both-good)
+    const allNames = ch.cast.map(c => c.name);
+    const allEdges = (ch.intro || [])
+      .filter(s => s.kind === 'pair' || s.kind === 'bond')
+      .filter(e => allNames.includes(e.a) && allNames.includes(e.b));
+    const sameEdges = allEdges.filter(e => e.correlation === 'same');
+    const oppositeEdges = allEdges.filter(e => e.correlation === 'opposite');
+    const untypedEdges = allEdges.filter(e => e.correlation !== 'same' && e.correlation !== 'opposite');
+    let chosenSpies = null;
+    let chosenSpyCount = 6;
+    for (let attempt = 0; attempt < 80; attempt++) {
+      seedPuzzleRng(hashSeed(ch.id + ':truth:v3:' + attempt));
+      const spyCount = 5 + Math.floor(rand() * 3); // 5-7 spies per chapter
+      const candidate = new Set(shuffle([...allNames]).slice(0, spyCount));
+      // Typed constraints
+      let typedOK = true;
+      for (const e of sameEdges) {
+        if (candidate.has(e.a) !== candidate.has(e.b)) { typedOK = false; break; }
+      }
+      if (!typedOK) continue;
+      for (const e of oppositeEdges) {
+        if (candidate.has(e.a) === candidate.has(e.b)) { typedOK = false; break; }
+      }
+      if (!typedOK) continue;
+      // Diversity check applies only to UNTYPED edges
+      if (untypedEdges.length === 0) {
+        chosenSpies = candidate; chosenSpyCount = spyCount; break;
+      }
+      let mixed = 0, bothBad = 0, bothGood = 0;
+      for (const e of untypedEdges) {
+        const aBad = candidate.has(e.a), bBad = candidate.has(e.b);
+        if (aBad && bBad) bothBad++;
+        else if (!aBad && !bBad) bothGood++;
+        else mixed++;
+      }
+      const needMixed = Math.ceil(untypedEdges.length * 0.4);
+      const hasSameOutcome = (bothBad + bothGood) >= 1;
+      if (mixed >= needMixed && hasSameOutcome) {
+        chosenSpies = candidate; chosenSpyCount = spyCount; break;
+      }
+    }
+    if (!chosenSpies) {
+      // Fallback: typed constraints only (no diversity check)
+      for (let attempt = 0; attempt < 200; attempt++) {
+        seedPuzzleRng(hashSeed(ch.id + ':truth:fallback:' + attempt));
+        const spyCount = 5 + Math.floor(rand() * 3);
+        const candidate = new Set(shuffle([...allNames]).slice(0, spyCount));
+        let ok = true;
+        for (const e of sameEdges) if (candidate.has(e.a) !== candidate.has(e.b)) { ok = false; break; }
+        if (!ok) continue;
+        for (const e of oppositeEdges) if (candidate.has(e.a) === candidate.has(e.b)) { ok = false; break; }
+        if (ok) { chosenSpies = candidate; chosenSpyCount = spyCount; break; }
+      }
+    }
+    if (!chosenSpies) {
+      // Last-resort: unconstrained
+      seedPuzzleRng(hashSeed(ch.id + ':truth'));
+      chosenSpyCount = 5 + Math.floor(rand() * 3);
+      chosenSpies = new Set(shuffle([...allNames]).slice(0, chosenSpyCount));
+    }
+    state.chapterTruth = {};
+    for (const n of allNames) state.chapterTruth[n] = chosenSpies.has(n);
+    // Restore suspects from saved progress if available (survives page refresh)
+    const savedProg = state.progress[ch.id];
+    state.chapterSuspects = (savedProg && Array.isArray(savedProg.suspects))
+      ? [...savedProg.suspects]
+      : [];
+  }
+
+  // (B) Set dimensions
+  if (isVerdict) {
+    // Act 4: 16-card independent puzzle. Priority:
+    //  1) ALL spies (the answers MUST appear)
+    //  2) Edge participants connected to a spy (so relationship network leads to spies)
+    //  3) Other edge participants (dense graph for cross-verification)
+    //  4) Random fill to reach 16
+    const edges = (ch.intro || []).filter(s => s.kind === 'pair' || s.kind === 'bond');
+    const validNames = new Set(ch.cast.map(c => c.name));
+    const added = new Set();
+    const order = [];
+    const addName = (n) => { if (validNames.has(n) && !added.has(n)) { added.add(n); order.push(n); } };
+    // 1) All spies first
+    ch.cast.forEach(c => { if (state.chapterTruth[c.name]) addName(c.name); });
+    const spySet = new Set(order);
+    // 2) Edges that touch a spy — these are the discriminating relationships
+    seedPuzzleRng(hashSeed(ch.id + ':verdict-edges'));
+    const edgesShuffled = shuffle([...edges]);
+    edgesShuffled.filter(e => spySet.has(e.a) || spySet.has(e.b))
+      .forEach(e => { addName(e.a); addName(e.b); });
+    // 3) Other edges
+    edgesShuffled.filter(e => !spySet.has(e.a) && !spySet.has(e.b))
+      .forEach(e => { addName(e.a); addName(e.b); });
+    // 4) Random fill to 16
+    seedPuzzleRng(hashSeed(ch.id + ':verdict-fill'));
+    const remaining = shuffle(ch.cast.filter(c => !added.has(c.name)).map(c => c.name));
+    while (order.length < 16 && remaining.length > 0) order.push(remaining.shift());
+    let names = order.slice(0, 16);
+    state.chapterSuspects = names;
+    // Persist
+    const prog = ensureProgress(ch.id);
+    prog.suspects = [...state.chapterSuspects];
+    saveProgress();
+    const n = state.chapterSuspects.length;
+    if (n <= 4)       { state.rows = 1; state.cols = n; }
+    else if (n <= 6)  { state.rows = 2; state.cols = 3; }
+    else if (n <= 9)  { state.rows = 3; state.cols = 3; }
+    else if (n <= 12) { state.rows = 3; state.cols = 4; }
+    else if (n <= 16) { state.rows = 4; state.cols = 4; }
+    else              { state.rows = 5; state.cols = 4; }
+    state.total = n;
+  } else {
+    state.rows = diff.rows;
+    state.cols = diff.cols;
+    state.total = diff.rows * diff.cols;
+  }
 
   openNarrative(level.title, level.prelude, () => {
-    state.cast = pickCast(ch.cast, state.total);
-    state.solution = generateSolution(diff);
-    state.statements = generateStatements(state.cast, state.solution, ch.theme, diff);
+    // (C) Build cast for this act
+    const seed = level.seed || hashSeed(ch.id + ':' + state.currentLevelIdx);
+    seedPuzzleRng(seed);
+    if (isVerdict) {
+      // Cast = chapter characters whose name is in chapterSuspects
+      state.cast = ch.cast.filter(c => state.chapterSuspects.includes(c.name));
+      // Shuffle for varied grid layout each time
+      state.cast = shuffle(state.cast);
+    } else {
+      state.cast = shuffle([...ch.cast]).slice(0, state.total);
+    }
+    // Truth always comes from chapter-wide chapterTruth
+    state.solution = state.cast.map(c => !!state.chapterTruth[c.name]);
+    // Statements regenerate per act
+    state.statements = isVerdict
+      ? generateVerdictStatements(state.cast, state.solution, ch.theme, ch)
+      : generateStatements(state.cast, state.solution, ch.theme, diff);
     state.marks = Array(state.total).fill(null);
     state.locked = Array(state.total).fill(false);
     state.visited = Array(state.total).fill(false);
+    state.actTouched = Array(state.total).fill(false);
     state.hearts = 3;
     state.elapsed = 0;
     state.startTime = Date.now();
@@ -1822,9 +3725,11 @@ function startLevel() {
     showScreen('puzzle');
     document.getElementById('puzzle-chapter').textContent = ch.title;
     document.getElementById('puzzle-level').textContent = level.title;
-    document.getElementById('puzzle-size').textContent = `${state.rows} × ${state.cols} · ${state.total} 人`;
-    setEcho('深呼吸，从任何一张卡开始。');
-    render(level.difficulty);
+    document.getElementById('puzzle-size').textContent = isVerdict
+      ? `终审 · 嫌疑名单 ${state.total} 人`
+      : `${state.rows} × ${state.cols} · ${state.total} 人`;
+    setEcho(isVerdict ? '终审——只有这些人。点开听他们的话，再下定论。' : '深呼吸，从任何一张卡开始。');
+    render(diffKey);
   });
 }
 
@@ -1902,6 +3807,55 @@ function render(difficulty) {
   el.timer.textContent = formatTime(state.elapsed);
 }
 
+function renderRelationships() {
+  const ch = CHAPTERS[state.currentChapterId];
+  const list = document.getElementById('rel-list');
+  if (!ch || !ch.intro) {
+    list.innerHTML = '<div class="empty-state">本章没有定义关系网。</div>';
+    return;
+  }
+  const edges = ch.intro.filter(s => s.kind === 'pair' || s.kind === 'bond');
+  if (edges.length === 0) {
+    list.innerHTML = '<div class="empty-state">本章没有定义关系网。</div>';
+    return;
+  }
+  // Filter to edges where AT LEAST one member is in the current act's cast
+  const castNames = new Set(state.cast.map(c => c.name));
+  const relevant = edges.filter(p => castNames.has(p.a) || castNames.has(p.b));
+  const display = relevant.length > 0 ? relevant : edges;
+  // Sort: pairs first, then bonds — pairs are stronger anchors
+  display.sort((x, y) => (x.kind === 'pair' ? 0 : 1) - (y.kind === 'pair' ? 0 : 1));
+  list.innerHTML = display.map(p => {
+    const aIn = castNames.has(p.a);
+    const bIn = castNames.has(p.b);
+    const bothIn = aIn && bIn;
+    const tag = bothIn ? '' : '<span style="color:var(--text-dim);font-size:10px;letter-spacing:1px;"> · 仅一人在本幕</span>';
+    const isBond = p.kind === 'bond';
+    const kindTag = isBond
+      ? '<span style="color:#c084fc;font-size:10px;letter-spacing:1px;margin-right:6px;">私交</span>'
+      : '<span style="color:#7dd3fc;font-size:10px;letter-spacing:1px;margin-right:6px;">同列</span>';
+    // Correlation badge — ground-truth identity relationship from the relationship graph
+    let corrTag = '';
+    let borderColor = isBond ? 'rgba(192,132,252,0.5)' : 'rgba(125,211,252,0.5)';
+    if (p.correlation === 'same') {
+      corrTag = '<span style="background:rgba(34,197,94,0.15);color:#86efac;font-size:10px;letter-spacing:1px;padding:2px 6px;border-radius:4px;margin-left:6px;">同心 · 共身份</span>';
+      borderColor = 'rgba(34,197,94,0.6)';
+    } else if (p.correlation === 'opposite') {
+      corrTag = '<span style="background:rgba(244,114,182,0.15);color:#f9a8d4;font-size:10px;letter-spacing:1px;padding:2px 6px;border-radius:4px;margin-left:6px;">对立 · 必反</span>';
+      borderColor = 'rgba(244,114,182,0.6)';
+    } else if (isBond) {
+      corrTag = '<span style="background:rgba(148,163,184,0.15);color:#cbd5e1;font-size:10px;letter-spacing:1px;padding:2px 6px;border-radius:4px;margin-left:6px;">暧昧</span>';
+    }
+    return `
+      <div class="rel-item" style="${bothIn ? '' : 'opacity:0.6;'}border-left:2px solid ${borderColor};padding-left:8px;">
+        <div class="rel-pair">${kindTag}${p.a} ↔ ${p.b}${corrTag}${tag}</div>
+        <div class="rel-link">${p.link}</div>
+        ${p.text ? `<div class="rel-text">${p.text.replaceAll('\n', '<br/>')}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+}
+
 function renderNotebook() {
   const visited = state.cast.map((r, i) => ({ r, i })).filter(x => state.visited[x.i]);
   if (visited.length === 0) {
@@ -1914,8 +3868,7 @@ function renderNotebook() {
     item.className = 'note-item';
     if (state.marks[i] === 'good') item.classList.add('marked-good');
     if (state.marks[i] === 'bad') item.classList.add('marked-bad');
-    const markText = state.marks[i] === 'good' ? ' · 已标记好人'
-                   : state.marks[i] === 'bad'  ? ' · 已标记卧底' : '';
+    const markText = state.marks[i] ? ' · 已标记 ' + labelFor(state.marks[i]) : '';
     item.innerHTML = `
       <div class="note-who">${r.icon} ${r.name} <span style="color:var(--text-dim);">· ${r.role}${markText}</span></div>
       <div class="note-quote">"${state.statements[i]}"</div>
@@ -1944,22 +3897,25 @@ function openCharacter(i) {
   state.selectedIdx = i;
   state.visited[i] = true;
   const role = state.cast[i];
+  const labels = currentLabels();
   el.previewAvatar.textContent = role.icon;
   el.previewName.textContent = role.name;
   el.previewProf.textContent = role.role;
   el.quoteText.textContent = `"${state.statements[i]}"`;
   el.quoteAttribution.textContent = `— ${role.name} · ${role.role}`;
+  // Chapter-specific mark buttons
+  document.querySelectorAll('#mark-row [data-mark="good"]').forEach(b => b.textContent = labels.good);
+  document.querySelectorAll('#mark-row [data-mark="bad"]').forEach(b => b.textContent = labels.bad);
   if (state.locked[i]) {
-    const truth = state.solution[i] ? '卧底' : '好人';
     el.markedTag.style.display = 'block';
     el.markedTag.className = 'marked-tag ' + (state.solution[i] ? 'bad' : 'good');
-    el.markedTag.textContent = `已确认 · ${truth}`;
+    el.markedTag.textContent = `已确认 · ${state.solution[i] ? labelFor('bad', true) : labelFor('good', true)}`;
     el.markRow.style.display = 'none';
     el.clearMarkBtn.style.display = 'none';
   } else if (state.marks[i]) {
     el.markedTag.style.display = 'block';
     el.markedTag.className = 'marked-tag ' + (state.marks[i] === 'good' ? 'good' : 'bad');
-    el.markedTag.textContent = `当前标记 · ${state.marks[i] === 'good' ? '好人' : '卧底'}`;
+    el.markedTag.textContent = `当前标记 · ${labelFor(state.marks[i])}`;
     el.markRow.style.display = 'flex';
     el.clearMarkBtn.style.display = 'block';
   } else {
@@ -1974,15 +3930,39 @@ function openCharacter(i) {
 function applyMark(mark) {
   const i = state.selectedIdx;
   if (i < 0 || !state.active) return;
+  const diff = CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty;
+
+  // === Acts 1, 2, 3: exploration — no penalty, accumulates suspects ===
+  if (isExplorationAct()) {
+    haptic([8, 20, 8]);
+    state.marks[i] = mark;
+    state.locked[i] = false;
+    state.actTouched[i] = true;
+    // Track this character as a suspect across the chapter (persists to localStorage)
+    const name = state.cast[i].name;
+    if (mark === 'bad' && !state.chapterSuspects.includes(name)) {
+      state.chapterSuspects.push(name);
+      const prog = ensureProgress(state.chapterId);
+      prog.suspects = [...state.chapterSuspects];
+      saveProgress();
+    }
+    closeModal('modal-character');
+    setEcho(`${name} · ${labelFor(mark)}`);
+    render(diff);
+    checkActComplete();
+    return;
+  }
+
+  // === Act 3: final verdict ===
   const truth = state.solution[i];
   const guess = (mark === 'bad');
-  const diff = CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty;
   if (guess === truth) {
     haptic([15, 40, 15]);
     state.marks[i] = mark;
     state.locked[i] = true;
+    state.actTouched[i] = true;
     closeModal('modal-character');
-    setEcho(`${state.cast[i].name} 已确认 · ${truth ? '卧底' : '好人'}`);
+    setEcho(`${state.cast[i].name} 已确认 · ${truth ? labelFor('bad', true) : labelFor('good', true)}`);
     render(diff);
     checkWin();
   } else {
@@ -1993,7 +3973,7 @@ function applyMark(mark) {
     shakeCell(i);
     shakeHeart();
     if (state.hearts > 0) {
-      setEcho(`猜错了，还有 ${state.hearts} 颗心。`);
+      setEcho(`不对——还有 ${state.hearts} 颗心。`);
       setTimeout(() => {
         if (!state.locked[i]) { state.marks[i] = null; render(diff); }
       }, 700);
@@ -2008,6 +3988,7 @@ function clearMark() {
   if (i < 0) return;
   if (state.locked[i]) { showToast('已经确认，无法更改。'); return; }
   state.marks[i] = null;
+  state.actTouched[i] = false;  // clearing means not confirmed in this act
   closeModal('modal-character');
   const diff = CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty;
   render(diff);
@@ -2032,6 +4013,15 @@ function checkWin() {
   win();
 }
 
+// Act 1/2 completion: every visible card must be marked (good or bad).
+// Each act is independent — fresh cast, fresh start.
+function checkActComplete() {
+  for (let i = 0; i < state.total; i++) {
+    if (!state.marks[i]) return;
+  }
+  win();
+}
+
 function win() {
   stopTimer();
   state.active = false;
@@ -2042,11 +4032,41 @@ function win() {
   prog.completedLevels[state.currentLevelIdx] = true;
   const allDone = prog.completedLevels.every(Boolean);
   saveProgress();
-  el.winBody.innerHTML = `
-    用时 · <span style="color:var(--gold);">${formatTime(state.elapsed)}</span><br/>
-    剩余生命 · ${'♥'.repeat(state.hearts)}<br/>
-    ${allDone ? '<br/>本章已完结。' : ''}
-  `;
+
+  // Per-act win modal body
+  const isFinal = isFinalAct();
+  const suspectCount = (() => {
+    let n = 0;
+    for (let i = 0; i < state.total; i++) if (state.marks[i] === 'bad') n++;
+    return n;
+  })();
+  // Total accumulated suspects across all explored acts (chapter-wide)
+  const totalSuspects = state.chapterSuspects.length;
+  let title, body;
+  if (state.currentLevelIdx === 0) {
+    title = '嫌疑初判';
+    body = `用时 · <span style="color:var(--gold);">${formatTime(state.elapsed)}</span><br/>
+      初轮 · 列入「可疑」的有 <b>${suspectCount}</b> 人<br/>
+      <span style="font-size:12px;color:var(--text-dim);">第二幕：范围更广，再筛一遍。</span>`;
+  } else if (state.currentLevelIdx === 1) {
+    title = '范围收窄';
+    body = `用时 · <span style="color:var(--gold);">${formatTime(state.elapsed)}</span><br/>
+      二轮 · 列入「可疑」的有 <b>${suspectCount}</b> 人<br/>
+      累计嫌疑名单 · <b>${totalSuspects}</b> 人<br/>
+      <span style="font-size:12px;color:var(--text-dim);">第三幕：全员复审。</span>`;
+  } else if (state.currentLevelIdx === 2) {
+    title = '全员复审';
+    body = `用时 · <span style="color:var(--gold);">${formatTime(state.elapsed)}</span><br/>
+      累计嫌疑名单 · <b>${totalSuspects}</b> 人<br/>
+      <span style="font-size:12px;color:var(--text-dim);">第四幕：终审——只在这些人里找出真正动手的。错不起。</span>`;
+  } else {
+    title = '判决';
+    body = `用时 · <span style="color:var(--gold);">${formatTime(state.elapsed)}</span><br/>
+      剩余生命 · ${'♥'.repeat(state.hearts)}<br/>
+      ${allDone ? '<br/>本章已完结。' : ''}`;
+  }
+  document.querySelector('#modal-win .modal-title').textContent = title;
+  el.winBody.innerHTML = body;
   document.getElementById('btn-next').textContent = allDone ? '看结局' : '下一幕';
   setTimeout(() => openModal('modal-win'), 350);
 }
@@ -2074,12 +4094,36 @@ function continueAfterWin() {
   }
 }
 
-function retryLevel() { closeModal('modal-lose'); startLevel(); }
+function retryLevel() {
+  // Gate retry behind a passphrase prompt (case-insensitive 'Ilovemomo')
+  const input = document.getElementById('passphrase-input');
+  const hint = document.getElementById('passphrase-hint');
+  if (input) input.value = '';
+  if (hint) hint.innerHTML = '&nbsp;';
+  openModal('modal-passphrase');
+  setTimeout(() => { if (input) input.focus(); }, 80);
+}
+function confirmPassphraseAndRetry() {
+  const input = document.getElementById('passphrase-input');
+  const hint = document.getElementById('passphrase-hint');
+  const value = (input.value || '').trim().toLowerCase();
+  if (value === 'ilovemomo') {
+    closeModal('modal-passphrase');
+    closeModal('modal-lose');
+    startLevel();
+  } else {
+    hint.textContent = '暗号不对——再试一次。';
+    input.value = '';
+    input.focus();
+    haptic(20);
+  }
+}
 function revealAndBack() {
-  state.cast.forEach((_, i) => {
+  for (let i = 0; i < state.total; i++) {
     state.marks[i] = state.solution[i] ? 'bad' : 'good';
     state.locked[i] = true;
-  });
+    state.actTouched[i] = true;
+  }
   const diff = CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty;
   render(diff);
   closeModal('modal-lose');
@@ -2089,27 +4133,118 @@ function revealAndBack() {
 // =============================================================
 // HINT / HELP
 // =============================================================
+// Hints give relationship/clue-based nudges — never reveal a card's identity.
+// If you're truly stuck, use 放弃 to see the full answer.
 function useHint() {
   if (!state.active) return;
   haptic(20);
-  const candidates = [];
-  for (let i = 0; i < state.total; i++) if (!state.locked[i]) candidates.push(i);
-  if (!candidates.length) { showToast('已经全部确认。'); return; }
-  const i = pick(candidates);
-  state.marks[i] = state.solution[i] ? 'bad' : 'good';
-  state.locked[i] = true;
-  const diff = CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty;
-  render(diff);
-  setEcho(`提示 · ${state.cast[i].name} 是${state.solution[i] ? '卧底' : '好人'}`);
-  checkWin();
+
+  const ch = CHAPTERS[state.currentChapterId];
+  const finalBad = labelFor('bad', true);
+  const finalGood = labelFor('good', true);
+  const tentativeBad = labelFor('bad');
+  const tentativeGood = labelFor('good');
+
+  // Act 4-specific hints (relationship + accumulated reasoning)
+  if (isFinalAct()) {
+    const hints4 = [];
+    const visibleNames = new Set(state.cast.map(c => c.name));
+    if (ch.intro) {
+      const edges = ch.intro.filter(s => s.kind === 'pair' || s.kind === 'bond');
+      for (const p of edges) {
+        if (visibleNames.has(p.a) && visibleNames.has(p.b)) {
+          const kindLbl = p.kind === 'bond' ? '私交' : '关系';
+          hints4.push(`${kindLbl} · ${p.a} 跟 ${p.b}：${p.link}\n这一条关系是真的——把笔记里关于这两人的话连起来看。`);
+        }
+      }
+    }
+    hints4.push(`公开说自己 ${finalGood} 的人——可信。\n${finalGood} 的人没必要撒谎。`);
+    hints4.push(`内鬼说话会撒谎——\n先找一个能从关系网验出来的 ${finalGood} 人，\n再用 ${finalGood} 人的话推剩下的。`);
+    hints4.push(`关系网里只有一个 ${finalBad} 的那对——\n谁自陈 ${finalGood}，谁就是 ${finalGood} 的。\n另一个是 ${finalBad}。`);
+    hints4.push(`点「关系」按钮——看完关系网，再回来听。`);
+    // Count unmarked
+    let unmarked = 0;
+    for (let i = 0; i < state.total; i++) if (!state.marks[i]) unmarked++;
+    if (unmarked > 0) {
+      hints4.push(`还有 ${unmarked} 张没下判断——\n每一张卡都被另一句话提过——回笔记找。`);
+    }
+    setEcho(`💡 ${pick(hints4)}`);
+    return;
+  }
+
+  // Visible characters this act
+  const visibleSet = new Set(state.cast.slice(0, state.total).map(c => c.name));
+
+  const hints = [];
+
+  // — A. Relationship-pair hints (drawn from intro pair scenes) —
+  if (ch.intro) {
+    for (const scene of ch.intro) {
+      if (scene.kind !== 'pair') continue;
+      if (visibleSet.has(scene.a) && visibleSet.has(scene.b)) {
+        hints.push(`关系网 · ${scene.a} 与 ${scene.b}：${scene.link}\n他们之间留着一条逻辑路径——重新听他们各自说的话。`);
+      }
+    }
+  }
+
+  // — B. Self-attestation reminder —
+  hints.push(`公开说自己是「${finalGood}」的人——可信。\n这一群里，没人会撒这种谎。`);
+
+  // — C. Row/column logic reminder (without revealing counts) —
+  hints.push(`再翻笔记——\n每一行、每一列，总有人提过他们那边的人数。\n把数字对一对。`);
+
+  // — D. Profession hint (without revealing which side) —
+  const profGroups = {};
+  for (let i = 0; i < state.total; i++) {
+    const role = state.cast[i].role;
+    (profGroups[role] = profGroups[role] || []).push(i);
+  }
+  const multiProfs = Object.entries(profGroups).filter(([_, idxs]) => idxs.length >= 2);
+  if (multiProfs.length) {
+    const [prof] = pick(multiProfs);
+    hints.push(`所有 ${prof}——把他们放在一起看。\n同一职位的人，命运常常是一致的。`);
+  }
+
+  // — E. Mark count parity nudge (general, doesn't reveal who) —
+  let markedBad = 0, markedGood = 0;
+  for (let i = 0; i < state.total; i++) {
+    if (state.marks[i] === 'bad') markedBad++;
+    else if (state.marks[i] === 'good') markedGood++;
+  }
+  // Use the total spy count (it's stated openly in clues, fair to remind)
+  let totalSpies = 0;
+  for (let i = 0; i < state.total; i++) if (state.solution[i]) totalSpies++;
+  if (markedBad < totalSpies) {
+    hints.push(`总数想一想——\n这一幕的「${finalBad}」总数已经在台词里说过。\n你的「${tentativeBad}」是不是少了？`);
+  } else if (markedBad > totalSpies) {
+    hints.push(`你标的「${tentativeBad}」可能多了。\n再回去对一下总数。`);
+  }
+
+  // — F. Direction nudge —
+  if (state.rows > 1 && state.cols > 1) {
+    hints.push(`有人提过「上方一格」「左侧一格」——\n那是最短的推理路径。\n去翻翻笔记里的方向词。`);
+  }
+
+  // — G. Notebook nudge for unread characters —
+  let unread = 0;
+  for (let i = 0; i < state.total; i++) if (!state.visited[i]) unread++;
+  if (unread > 0) {
+    hints.push(`还有 ${unread} 张卡没翻过。\n听完所有人，再下判断。`);
+  }
+
+  // — H. Contradiction-style reminder —
+  hints.push(`矛盾里——藏着真相。\n如果两个人说的话不可能同时为真，那其中一个就破了。`);
+
+  setEcho(`💡 ${pick(hints)}`);
 }
 function useHelp() {
   if (!state.active) return;
   if (confirm('要显示完整答案吗？这一幕不会计入通关，但你仍可以继续本章。')) {
-    state.cast.forEach((_, i) => {
+    for (let i = 0; i < state.total; i++) {
       state.marks[i] = state.solution[i] ? 'bad' : 'good';
       state.locked[i] = true;
-    });
+      state.actTouched[i] = true;
+    }
     stopTimer();
     state.active = false;
     const diff = CHAPTERS[state.currentChapterId]?.levels[state.currentLevelIdx]?.difficulty;
@@ -2175,6 +4310,11 @@ document.querySelectorAll('.modal-btn').forEach(b => attachRipple(b));
 
 document.getElementById('btn-info').addEventListener('click', () => { haptic(6); openModal('modal-tutorial'); });
 document.getElementById('btn-notebook').addEventListener('click', () => { haptic(8); renderNotebook(); openModal('modal-notebook'); });
+document.getElementById('btn-relationships').addEventListener('click', () => {
+  haptic(8);
+  renderRelationships();
+  openModal('modal-relationships');
+});
 document.getElementById('btn-hint').addEventListener('click', useHint);
 document.getElementById('btn-help').addEventListener('click', useHelp);
 document.querySelectorAll('[data-mark]').forEach(b => {
@@ -2183,6 +4323,13 @@ document.querySelectorAll('[data-mark]').forEach(b => {
 document.getElementById('btn-clear-mark').addEventListener('click', clearMark);
 document.getElementById('btn-next').addEventListener('click', continueAfterWin);
 document.getElementById('btn-retry').addEventListener('click', retryLevel);
+document.getElementById('btn-passphrase-submit').addEventListener('click', confirmPassphraseAndRetry);
+document.getElementById('btn-passphrase-cancel').addEventListener('click', () => {
+  closeModal('modal-passphrase');
+});
+document.getElementById('passphrase-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); confirmPassphraseAndRetry(); }
+});
 document.getElementById('btn-reveal').addEventListener('click', revealAndBack);
 document.getElementById('btn-lose-back').addEventListener('click', () => {
   closeModal('modal-lose'); stopTimer(); state.active = false;

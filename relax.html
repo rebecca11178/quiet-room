@@ -3,10 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#f5f0e8">
-<title>解压小屋</title>
+<title>解压小屋 · Relax Cabin</title>
+<meta name="description" content="触屏互动 · 慢节奏 · 释放手部能量。" />
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="静室">
+<meta name="format-detection" content="telephone=no">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
   html, body { width: 100%; height: 100%; overflow: hidden; touch-action: none; overscroll-behavior: none; }
@@ -14,13 +23,60 @@
     font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
     background: #f5f0e8;
   }
-
   #app { width: 100%; height: 100%; position: relative; }
 
-  .scene {
+  /* ===== Top bar with back button ===== */
+  #topbar {
     position: absolute;
     top: 0; left: 0; right: 0;
-    bottom: calc(64px + env(safe-area-inset-bottom));
+    height: calc(48px + env(safe-area-inset-top, 0px));
+    padding-top: env(safe-area-inset-top, 0px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: 12px;
+    padding-right: 12px;
+    z-index: 15;
+    pointer-events: none;
+  }
+  .back-btn {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: none;
+    color: #666;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    pointer-events: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform 0.1s;
+    font-family: inherit;
+  }
+  .back-btn:active { transform: scale(0.9); }
+  .scene-name {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 7px 16px;
+    border-radius: 18px;
+    font-size: 13px;
+    color: #666;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    letter-spacing: 1px;
+    pointer-events: auto;
+  }
+  .spacer { width: 36px; }
+
+  /* ===== Scenes ===== */
+  .scene {
+    position: absolute;
+    top: calc(48px + env(safe-area-inset-top, 0px));
+    left: 0; right: 0;
+    bottom: calc(64px + env(safe-area-inset-bottom, 0px));
     display: none;
     overflow: hidden;
   }
@@ -30,8 +86,8 @@
   #tabs {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    height: calc(64px + env(safe-area-inset-bottom));
-    padding-bottom: env(safe-area-inset-bottom);
+    height: calc(64px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     background: white;
     display: flex;
     box-shadow: 0 -2px 10px rgba(0,0,0,0.06);
@@ -49,98 +105,181 @@
   .tab.active { color: #ff7eb3; }
   .tab:active { transform: scale(0.92); }
 
-  /* ===== Hint ===== */
-  .hint {
-    position: absolute;
-    top: max(20px, env(safe-area-inset-top, 20px));
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(255,255,255,0.9);
-    padding: 8px 18px;
-    border-radius: 20px;
-    font-size: 13px;
-    color: #666;
-    pointer-events: none;
-    opacity: 0;
-    z-index: 5;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    white-space: nowrap;
-  }
-  .scene.active .hint { animation: fade-hint 4.5s forwards; }
-  @keyframes fade-hint {
-    0% { opacity: 0; transform: translate(-50%, -8px); }
-    15%, 75% { opacity: 1; transform: translate(-50%, 0); }
-    100% { opacity: 0; transform: translate(-50%, -8px); }
-  }
-
-  /* ===== Bubble Wrap ===== */
+  /* ===== Bubble Wrap (real packaging style) ===== */
   #bubble-scene {
-    background: linear-gradient(135deg, #ffeef5 0%, #ffe5ec 100%);
+    background: linear-gradient(135deg, #e8f4f8 0%, #d4e9f0 100%);
   }
-  #bubble-grid {
-    width: 100%; height: 100%;
+  #bubble-sheet {
+    position: absolute;
+    inset: 0;
     display: grid;
-    gap: 6px;
-    padding: 14px;
+    justify-content: center;
+    align-content: center;
   }
   .bubble {
-    aspect-ratio: 1;
     border-radius: 50%;
-    background:
-      radial-gradient(circle at 32% 28%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.3) 18%, transparent 35%),
-      radial-gradient(circle at 65% 70%, rgba(255,126,179,0.5), rgba(255,182,210,0.7));
-    box-shadow:
-      inset -3px -4px 10px rgba(199,79,127,0.35),
-      inset 2px 2px 4px rgba(255,255,255,0.6),
-      0 2px 5px rgba(199,79,127,0.15);
+    position: relative;
     cursor: pointer;
-    transition: transform 0.06s;
+    transition: transform 0.06s ease-out;
+    /* Glassy dome — three-layer gradient for realism */
+    background:
+      radial-gradient(ellipse at 35% 28%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.4) 18%, rgba(255,255,255,0) 38%),
+      radial-gradient(circle at 50% 50%, rgba(180,220,235,0.85) 0%, rgba(130,185,210,0.95) 70%, rgba(95,155,185,1) 100%);
+    box-shadow:
+      inset -3px -4px 8px rgba(50,100,130,0.5),
+      inset 2px 3px 6px rgba(255,255,255,0.7),
+      0 2px 5px rgba(50,100,130,0.25);
   }
-  .bubble:active { transform: scale(0.9); }
+  .bubble::after {
+    content: '';
+    position: absolute;
+    top: 16%; left: 20%;
+    width: 32%; height: 20%;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0) 70%);
+    transform: rotate(-25deg);
+    pointer-events: none;
+  }
+  .bubble:active:not(.popped) { transform: scale(0.92); }
   .bubble.popped {
     background:
-      radial-gradient(circle, rgba(255,182,210,0.15), transparent 65%);
-    box-shadow: inset 1px 1px 3px rgba(199,79,127,0.15);
+      radial-gradient(ellipse at 50% 45%, rgba(80,120,150,0.45) 0%, rgba(110,150,175,0.25) 60%, rgba(140,180,200,0.1) 100%);
+    box-shadow:
+      inset 0 2px 5px rgba(40,80,110,0.55),
+      inset 0 -1px 2px rgba(255,255,255,0.25);
     pointer-events: none;
-    animation: bubble-pop 0.4s forwards;
+    animation: bubble-flatten 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
-  @keyframes bubble-pop {
-    0%   { transform: scale(1.18); }
-    35%  { transform: scale(0.82); }
-    70%  { transform: scale(1.02); }
-    100% { transform: scale(0.94); }
+  .bubble.popped::after { opacity: 0; }
+  @keyframes bubble-flatten {
+    0%   { transform: scale(1.15); }
+    35%  { transform: scale(0.78); }
+    65%  { transform: scale(0.86); }
+    100% { transform: scale(0.82); }
   }
 
-  /* ===== Slime ===== */
+  /* ===== Slime (Claymorphism + sound engine) ===== */
   #slime-scene {
-    background: linear-gradient(180deg, #fff5f0 0%, #ffe8db 100%);
-    display: flex; flex-direction: column;
+    background: linear-gradient(180deg, #FFF8F0 0%, #FFE8D6 100%);
+    display: flex;
+    flex-direction: column;
+    --clay-accent: #FFB088;
+    --clay-text: #5C4A3A;
+    --clay-text-soft: #A08775;
+    --clay-surface: #FFFFFF;
+    --clay-ease: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --clay-shadow:
+      inset 0 4px 8px rgba(255, 255, 255, 0.55),
+      inset 0 -4px 8px rgba(180, 140, 100, 0.15),
+      0 12px 24px -4px rgba(180, 130, 90, 0.25),
+      0 4px 8px -2px rgba(180, 130, 90, 0.15);
+    --clay-strong:
+      inset 0 6px 10px rgba(255, 255, 255, 0.65),
+      inset 0 -5px 10px rgba(180, 140, 100, 0.18),
+      0 16px 32px -4px rgba(180, 130, 90, 0.32),
+      0 6px 12px -2px rgba(180, 130, 90, 0.18);
   }
-  #slime-canvas {
+  #slime-scene::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle at 17% 23%, rgba(255,255,255,0.45) 1px, transparent 2px),
+      radial-gradient(circle at 62% 71%, rgba(255,255,255,0.35) 1px, transparent 2px),
+      radial-gradient(circle at 81% 12%, rgba(255,255,255,0.40) 1px, transparent 2px),
+      radial-gradient(circle at 33% 82%, rgba(255,255,255,0.30) 1px, transparent 2px);
+    background-size: 53px 53px, 67px 67px, 41px 41px, 73px 73px;
+    opacity: 0.45;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+  .clay-stage {
     flex: 1;
-    width: 100%;
-    display: block;
+    position: relative;
+    display: flex; align-items: center; justify-content: center;
+    min-height: 0;
   }
-  #slime-colors {
-    display: flex; gap: 10px;
-    justify-content: center;
-    padding: 14px 12px 18px;
+  .clay-stage-inner {
+    position: relative;
+    width: 280px; height: 280px;
+    display: grid; place-items: center;
   }
-  .color-dot {
-    width: 36px; height: 36px;
-    border-radius: 50%;
+  .clay-ground {
+    position: absolute;
+    bottom: 4px; left: 50%;
+    transform: translateX(-50%) scaleX(1);
+    width: 210px; height: 32px;
+    background: radial-gradient(ellipse at center, rgba(180,130,90,0.35) 0%, rgba(180,130,90,0.18) 35%, transparent 70%);
+    filter: blur(2px);
+    pointer-events: none;
+    transition: transform 0.18s var(--clay-ease), opacity 0.18s ease;
+  }
+  .clay-slime {
+    width: 280px; height: 280px;
+    position: relative;
+    display: grid; place-items: center;
+    cursor: grab;
+    animation: clay-enter 0.6s var(--clay-ease);
+    transition: transform 0.18s var(--clay-ease);
+    will-change: transform;
+    touch-action: none;
+  }
+  .clay-slime:active { cursor: grabbing; }
+  .clay-slime svg {
+    width: 100%; height: 100%;
+    overflow: visible;
+    filter:
+      drop-shadow(0 14px 22px rgba(180, 130, 90, 0.32))
+      drop-shadow(0 6px 10px rgba(180, 130, 90, 0.20));
+    pointer-events: none;
+  }
+  @keyframes clay-enter {
+    0%   { transform: scale(0.7); opacity: 0; }
+    60%  { transform: scale(1.05); opacity: 1; }
+    100% { transform: scale(1); }
+  }
+  .clay-selector {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding: 14px 24px 18px;
+    scrollbar-width: none;
+  }
+  .clay-selector::-webkit-scrollbar { display: none; }
+  .clay-selector-track {
+    display: inline-flex;
+    gap: 14px;
+    padding: 4px 2px;
+  }
+  .clay-pick {
+    flex-shrink: 0;
+    width: 56px; height: 56px;
+    border-radius: 9999px;
+    background: var(--clay-surface);
+    border: none;
     cursor: pointer;
-    border: 3px solid rgba(255,255,255,0.7);
-    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
-    transition: transform 0.15s, border-color 0.15s;
+    scroll-snap-align: center;
+    opacity: 0.72;
+    position: relative;
+    display: grid; place-items: center;
+    box-shadow: var(--clay-shadow);
+    transition: transform 0.35s var(--clay-ease), opacity 0.25s ease, box-shadow 0.25s ease;
   }
-  .color-dot.active {
-    border-color: #444;
-    transform: scale(1.15);
+  .clay-pick:active { transform: scale(0.94); }
+  .clay-pick.selected {
+    opacity: 1;
+    transform: scale(1.10);
+    box-shadow: 0 0 0 4px var(--clay-accent), var(--clay-strong);
   }
-  .color-dot:active { transform: scale(0.95); }
+  .clay-pick .thumb {
+    width: 38px; height: 38px;
+    border-radius: 9999px;
+    box-shadow:
+      inset 0 3px 4px rgba(255,255,255,0.5),
+      inset 0 -3px 5px rgba(180,140,100,0.18);
+  }
 
-  /* ===== Monsters (挤痘痘 卡通版) ===== */
+  /* ===== Monsters ===== */
   #pimple-scene {
     background:
       radial-gradient(ellipse at 30% 20%, rgba(255,255,255,0.4), transparent 50%),
@@ -213,34 +352,44 @@
 <body>
 <div id="app">
 
-  <!-- Bubble Wrap -->
-  <div class="scene active" id="bubble-scene">
-    <div class="hint">戳爆每一颗泡泡 🫧</div>
-    <div id="bubble-grid"></div>
+  <!-- Top bar -->
+  <div id="topbar">
+    <a href="index.html" class="back-btn" aria-label="返回首页">‹</a>
+    <span class="scene-name" id="scene-name">气泡纸</span>
+    <span class="spacer"></span>
   </div>
 
-  <!-- Slime -->
+  <!-- Bubble Wrap -->
+  <div class="scene active" id="bubble-scene">
+    <div id="bubble-sheet"></div>
+  </div>
+
+  <!-- Slime (Clay UI + SlimeSoundEngine) -->
   <div class="scene" id="slime-scene">
-    <div class="hint">拖动它、戳它，换颜色 🍮</div>
-    <canvas id="slime-canvas"></canvas>
-    <div id="slime-colors"></div>
+    <div class="clay-stage">
+      <div class="clay-stage-inner">
+        <div class="clay-ground" id="clay-ground"></div>
+        <div class="clay-slime" id="clay-slime"></div>
+      </div>
+    </div>
+    <nav class="clay-selector" id="clay-selector">
+      <div class="clay-selector-track" id="clay-selector-track"></div>
+    </nav>
   </div>
 
   <!-- Monsters -->
-  <div class="scene" id="pimple-scene">
-    <div class="hint">点击小怪兽，把它捏爆 👾</div>
-  </div>
+  <div class="scene" id="pimple-scene"></div>
 
   <div id="tabs">
-    <div class="tab active" data-scene="bubble-scene">
+    <div class="tab active" data-scene="bubble-scene" data-name="气泡纸">
       <div class="icon">🫧</div>
-      <div>气泡</div>
+      <div>气泡纸</div>
     </div>
-    <div class="tab" data-scene="slime-scene">
+    <div class="tab" data-scene="slime-scene" data-name="史莱姆">
       <div class="icon">🍮</div>
       <div>史莱姆</div>
     </div>
-    <div class="tab" data-scene="pimple-scene">
+    <div class="tab" data-scene="pimple-scene" data-name="小怪兽">
       <div class="icon">🦠</div>
       <div>小怪兽</div>
     </div>
@@ -256,54 +405,66 @@ function ensureAudio() {
   }
   if (audioCtx.state === 'suspended') audioCtx.resume();
 }
-function playPop(pitch) {
+
+// === Bubble wrap pop — extremely short, sharp click (no synth tone) ===
+function playBubblePop() {
   ensureAudio();
   if (!audioCtx) return;
   const t = audioCtx.currentTime;
-  const f0 = pitch || (500 + Math.random() * 400);
 
+  // 1) the snap — ultra-brief click, ~15ms
+  const dur = 0.018;
+  const buf = audioCtx.createBuffer(1, Math.max(64, Math.floor(audioCtx.sampleRate * dur)), audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  // Asymmetric envelope: instant attack, exponential decay
+  for (let i = 0; i < data.length; i++) {
+    const env = Math.exp(-(i / data.length) * 8);
+    data[i] = (Math.random() * 2 - 1) * env;
+  }
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buf;
+  // tight bandpass for "tick" character — randomized for variation
+  const bp = audioCtx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 2200 + Math.random() * 2000;
+  bp.Q.value = 5;
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.55, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + dur);
+  noise.connect(bp); bp.connect(gain); gain.connect(audioCtx.destination);
+  noise.start(t);
+
+  // 2) optional micro-thump (very subtle) for body — only 5ms
+  const osc = audioCtx.createOscillator();
+  const oGain = audioCtx.createGain();
+  osc.type = 'triangle';
+  osc.frequency.setValueAtTime(180 + Math.random() * 120, t);
+  oGain.gain.setValueAtTime(0.08, t);
+  oGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.012);
+  osc.connect(oGain); oGain.connect(audioCtx.destination);
+  osc.start(t); osc.stop(t + 0.02);
+}
+
+// (Old playSquish removed — slime sound is handled by SlimeSoundEngine below.)
+
+// Monster pop — gross satisfying
+function playMonsterPop() {
+  ensureAudio();
+  if (!audioCtx) return;
+  const t = audioCtx.currentTime;
+  const f0 = 400 + Math.random() * 300;
   const osc = audioCtx.createOscillator();
   const gain = audioCtx.createGain();
   osc.type = 'sine';
   osc.frequency.setValueAtTime(f0 * 1.6, t);
-  osc.frequency.exponentialRampToValueAtTime(f0 * 0.4, t + 0.09);
+  osc.frequency.exponentialRampToValueAtTime(f0 * 0.4, t + 0.12);
   gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(0.32, t + 0.006);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.13);
+  gain.gain.exponentialRampToValueAtTime(0.28, t + 0.006);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.15);
   osc.connect(gain); gain.connect(audioCtx.destination);
-  osc.start(t); osc.stop(t + 0.16);
+  osc.start(t); osc.stop(t + 0.18);
+}
 
-  // Brief noise burst for "pop"
-  const buf = audioCtx.createBuffer(1, audioCtx.sampleRate * 0.04, audioCtx.sampleRate);
-  const data = buf.getChannelData(0);
-  for (let i = 0; i < data.length; i++) data[i] = (Math.random() * 2 - 1) * (1 - i / data.length);
-  const noise = audioCtx.createBufferSource();
-  noise.buffer = buf;
-  const ngain = audioCtx.createGain();
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = 'bandpass';
-  filter.frequency.value = 1400;
-  filter.Q.value = 4;
-  ngain.gain.setValueAtTime(0.12, t);
-  ngain.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
-  noise.connect(filter); filter.connect(ngain); ngain.connect(audioCtx.destination);
-  noise.start(t);
-}
-function playSquish() {
-  ensureAudio();
-  if (!audioCtx) return;
-  const t = audioCtx.currentTime;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(220, t);
-  osc.frequency.exponentialRampToValueAtTime(90, t + 0.18);
-  gain.gain.setValueAtTime(0.0001, t);
-  gain.gain.exponentialRampToValueAtTime(0.18, t + 0.01);
-  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-  osc.connect(gain); gain.connect(audioCtx.destination);
-  osc.start(t); osc.stop(t + 0.25);
-}
 function vibrate(ms) {
   if (navigator.vibrate) {
     try { navigator.vibrate(ms || 8); } catch (e) {}
@@ -313,6 +474,7 @@ function vibrate(ms) {
 // ============== Tab switching ==============
 const tabs = document.querySelectorAll('.tab');
 const scenes = document.querySelectorAll('.scene');
+const sceneNameEl = document.getElementById('scene-name');
 let activeScene = 'bubble-scene';
 tabs.forEach(tab => {
   tab.addEventListener('click', () => {
@@ -321,274 +483,724 @@ tabs.forEach(tab => {
     activeScene = target;
     tabs.forEach(t => t.classList.toggle('active', t.dataset.scene === target));
     scenes.forEach(s => s.classList.toggle('active', s.id === target));
+    sceneNameEl.textContent = tab.dataset.name;
     ensureAudio();
-    if (target === 'slime-scene') resizeSlime();
+    if (target === 'slime-scene' && typeof ensureSlimeEngine === 'function') ensureSlimeEngine();
     if (target === 'pimple-scene' && monsters.length === 0) initMonsters();
   });
 });
 
 // ============== 1) Bubble Wrap ==============
-const bubbleGrid = document.getElementById('bubble-grid');
+const bubbleSheet = document.getElementById('bubble-sheet');
 
 function buildBubbles() {
   const sceneEl = document.getElementById('bubble-scene');
-  const w = sceneEl.clientWidth - 28;
-  const h = sceneEl.clientHeight - 28;
-  // Aim for ~48px bubbles
-  const cols = Math.max(6, Math.round(w / 50));
-  const cellW = (w - (cols - 1) * 6) / cols;
-  const rows = Math.max(8, Math.floor((h + 6) / (cellW + 6)));
-  bubbleGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-  bubbleGrid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
-  bubbleGrid.innerHTML = '';
+  const w = sceneEl.clientWidth;
+  const h = sceneEl.clientHeight;
+  if (w <= 0 || h <= 0) return;
+  const target = 48;   // target cell size in px
+  const gap = 4;
+  const padding = 10;
+  const innerW = w - padding * 2;
+  const innerH = h - padding * 2;
+  let cols = Math.max(5, Math.floor((innerW + gap) / (target + gap)));
+  let cellSize = Math.floor((innerW - (cols - 1) * gap) / cols);
+  // Ensure cell isn't too big — cap so we still get plenty of bubbles
+  if (cellSize > 60) {
+    cols = Math.ceil(innerW / 50);
+    cellSize = Math.floor((innerW - (cols - 1) * gap) / cols);
+  }
+  const rows = Math.max(3, Math.floor((innerH + gap) / (cellSize + gap)));
+
+  bubbleSheet.style.gridTemplateColumns = `repeat(${cols}, ${cellSize}px)`;
+  bubbleSheet.style.gridTemplateRows = `repeat(${rows}, ${cellSize}px)`;
+  bubbleSheet.style.gap = gap + 'px';
+  bubbleSheet.style.padding = padding + 'px';
+  bubbleSheet.innerHTML = '';
   for (let i = 0; i < cols * rows; i++) {
     const b = document.createElement('div');
     b.className = 'bubble';
-    bubbleGrid.appendChild(b);
+    bubbleSheet.appendChild(b);
   }
 }
 
 let lastPopAt = 0;
-bubbleGrid.addEventListener('pointerdown', (e) => {
-  const t = e.target;
-  if (t.classList.contains('bubble') && !t.classList.contains('popped')) {
-    t.classList.add('popped');
-    // Slight pitch ramp to feel musical when popping fast
-    const now = performance.now();
-    const fast = (now - lastPopAt) < 250;
-    lastPopAt = now;
-    playPop(450 + Math.random() * 350 + (fast ? 100 : 0));
-    vibrate(10);
-
-    // Auto-refill when all popped
-    if (bubbleGrid.querySelectorAll('.bubble:not(.popped)').length === 0) {
-      setTimeout(() => {
-        bubbleGrid.querySelectorAll('.bubble').forEach(b => b.classList.remove('popped'));
-      }, 700);
-    }
+function popBubble(el) {
+  if (!el || el.classList.contains('popped')) return;
+  el.classList.add('popped');
+  playBubblePop();
+  vibrate(12);
+  if (bubbleSheet.querySelectorAll('.bubble:not(.popped)').length === 0) {
+    setTimeout(() => {
+      bubbleSheet.querySelectorAll('.bubble').forEach(b => b.classList.remove('popped'));
+    }, 800);
   }
+}
+
+bubbleSheet.addEventListener('pointerdown', (e) => {
+  if (e.target.classList.contains('bubble')) popBubble(e.target);
 });
-// Allow dragging across bubbles to pop in a stroke
-bubbleGrid.addEventListener('pointermove', (e) => {
+bubbleSheet.addEventListener('pointermove', (e) => {
   if (e.pressure === 0 && e.buttons === 0) return;
   const el = document.elementFromPoint(e.clientX, e.clientY);
-  if (el && el.classList.contains('bubble') && !el.classList.contains('popped')) {
-    el.classList.add('popped');
-    playPop(500 + Math.random() * 350);
-    vibrate(8);
-    if (bubbleGrid.querySelectorAll('.bubble:not(.popped)').length === 0) {
-      setTimeout(() => {
-        bubbleGrid.querySelectorAll('.bubble').forEach(b => b.classList.remove('popped'));
-      }, 700);
-    }
-  }
+  if (el && el.classList.contains('bubble')) popBubble(el);
 });
 
-// ============== 2) Slime ==============
-const slimeCanvas = document.getElementById('slime-canvas');
-const sctx = slimeCanvas.getContext('2d');
-const slimeColors = ['#a8e6cf', '#ffb6c1', '#b5d4f5', '#ffe066', '#d4a5e8', '#ffa07a'];
-let slimeColor = slimeColors[0];
+// ============== 2) Slime (Clay UI + SlimeSoundEngine) ==============
 
-const colorBar = document.getElementById('slime-colors');
-slimeColors.forEach((c, i) => {
-  const d = document.createElement('div');
-  d.className = 'color-dot' + (i === 0 ? ' active' : '');
-  d.style.background = c;
-  d.addEventListener('click', () => {
-    slimeColor = c;
-    document.querySelectorAll('.color-dot').forEach(el => el.classList.toggle('active', el === d));
-  });
-  colorBar.appendChild(d);
-});
-
-const NUM_POINTS = 40;
-let slimePoints = [];
-let slimeCenter = { x: 0, y: 0, vx: 0, vy: 0 };
-let slimeRadius = 100;
-
-function initSlime() {
-  slimePoints = [];
-  for (let i = 0; i < NUM_POINTS; i++) {
-    const a = (i / NUM_POINTS) * Math.PI * 2;
-    slimePoints.push({
-      a,
-      x: slimeCenter.x + Math.cos(a) * slimeRadius,
-      y: slimeCenter.y + Math.sin(a) * slimeRadius,
-      vx: 0, vy: 0,
+class SlimeSoundEngine {
+  constructor() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    this.audioCtx = new AC();
+    this.inputBus = this.audioCtx.createGain();
+    this.inputBus.gain.value = 1;
+    this.lowpass = this.audioCtx.createBiquadFilter();
+    this.lowpass.type = 'lowpass';
+    this.lowpass.frequency.value = 8000;
+    this.convolver = this.audioCtx.createConvolver();
+    this.convolver.buffer = this._makeImpulseResponse(0.3, 2);
+    this.dryGain = this.audioCtx.createGain();
+    this.dryGain.gain.value = 0.88;
+    this.wetGain = this.audioCtx.createGain();
+    this.wetGain.gain.value = 0.12;
+    this.master = this.audioCtx.createGain();
+    this.master.gain.value = 0.7;
+    this.inputBus.connect(this.lowpass);
+    this.lowpass.connect(this.dryGain);
+    this.lowpass.connect(this.convolver);
+    this.convolver.connect(this.wetGain);
+    this.dryGain.connect(this.master);
+    this.wetGain.connect(this.master);
+    this.master.connect(this.audioCtx.destination);
+    this.buffers = { press: [], release: [], stretch: [], ambient: [] };
+    this.lastPlayed = { press: [], release: [] };
+    this.loadStatus = [];
+    this.pressing = false;
+    this.currentIntensity = 0;
+    this.pressTimer = null;
+    this.stretchSource = null; this.stretchGain = null; this.stretchActive = false;
+    this.ambientSource = null; this.ambientGain = null;
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.stopAll();
     });
   }
-}
-
-function resizeSlime() {
-  const dpr = window.devicePixelRatio || 1;
-  const w = slimeCanvas.clientWidth;
-  const h = slimeCanvas.clientHeight;
-  if (w === 0 || h === 0) return;
-  slimeCanvas.width = w * dpr;
-  slimeCanvas.height = h * dpr;
-  sctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  slimeCenter.x = w / 2;
-  slimeCenter.y = h / 2;
-  slimeCenter.vx = 0; slimeCenter.vy = 0;
-  slimeRadius = Math.min(w, h) * 0.27;
-  initSlime();
-}
-
-let pointer = { x: 0, y: 0, active: false, grabbed: false, ox: 0, oy: 0 };
-function pointerPos(e) {
-  const r = slimeCanvas.getBoundingClientRect();
-  return { x: e.clientX - r.left, y: e.clientY - r.top };
-}
-slimeCanvas.addEventListener('pointerdown', (e) => {
-  ensureAudio();
-  const p = pointerPos(e);
-  pointer.x = p.x; pointer.y = p.y; pointer.active = true;
-  const dx = p.x - slimeCenter.x;
-  const dy = p.y - slimeCenter.y;
-  if (dx*dx + dy*dy < slimeRadius * slimeRadius * 1.1) {
-    pointer.grabbed = true;
-    pointer.ox = slimeCenter.x - p.x;
-    pointer.oy = slimeCenter.y - p.y;
+  _makeImpulseResponse(duration = 0.3, decay = 2) {
+    const sr = this.audioCtx.sampleRate;
+    const length = Math.max(1, Math.floor(duration * sr));
+    const ir = this.audioCtx.createBuffer(2, length, sr);
+    for (let ch = 0; ch < 2; ch++) {
+      const data = ir.getChannelData(ch);
+      for (let i = 0; i < length; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+    }
+    return ir;
   }
-  playSquish();
-  vibrate(5);
-});
-slimeCanvas.addEventListener('pointermove', (e) => {
-  if (!pointer.active) return;
-  const p = pointerPos(e);
-  pointer.x = p.x; pointer.y = p.y;
-});
-function endPointer() { pointer.active = false; pointer.grabbed = false; }
-slimeCanvas.addEventListener('pointerup', endPointer);
-slimeCanvas.addEventListener('pointercancel', endPointer);
-slimeCanvas.addEventListener('pointerleave', endPointer);
-
-function updateSlime() {
-  const w = slimeCanvas.clientWidth;
-  const h = slimeCanvas.clientHeight;
-
-  // Move slime center if grabbed (with lag for jiggle)
-  if (pointer.grabbed) {
-    const targetX = pointer.x + pointer.ox;
-    const targetY = pointer.y + pointer.oy;
-    slimeCenter.vx += (targetX - slimeCenter.x) * 0.18;
-    slimeCenter.vy += (targetY - slimeCenter.y) * 0.18;
+  _makeSyntheticBuffer(kind, duration) {
+    const sr = this.audioCtx.sampleRate;
+    const len = Math.max(1, Math.floor(duration * sr));
+    const buf = this.audioCtx.createBuffer(1, len, sr);
+    const data = buf.getChannelData(0);
+    if (kind === 'press') {
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i/len, 2.5) * 0.55;
+      this._smoothBuffer(data, 4);
+    } else if (kind === 'release') {
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i/len, 3.2) * 0.85;
+      this._smoothBuffer(data, 2);
+    } else if (kind === 'stretch') {
+      for (let i = 0; i < len; i++) {
+        const flutter = 0.65 + 0.35 * Math.sin(2 * Math.PI * 3.5 * i / sr);
+        data[i] = (Math.random() * 2 - 1) * flutter * 0.30;
+      }
+      this._smoothBuffer(data, 5);
+    } else {
+      for (let i = 0; i < len; i++) {
+        const mod = 0.5 + 0.5 * Math.sin(2 * Math.PI * 0.3 * i / sr);
+        data[i] = (Math.random() * 2 - 1) * mod * 0.42;
+      }
+      this._smoothBuffer(data, 10);
+    }
+    return buf;
   }
-  slimeCenter.vx *= 0.82;
-  slimeCenter.vy *= 0.82;
-  slimeCenter.x += slimeCenter.vx;
-  slimeCenter.y += slimeCenter.vy;
-  // Soft bounds
-  const m = slimeRadius * 0.7;
-  if (slimeCenter.x < m) { slimeCenter.x = m; slimeCenter.vx *= -0.4; }
-  if (slimeCenter.x > w - m) { slimeCenter.x = w - m; slimeCenter.vx *= -0.4; }
-  if (slimeCenter.y < m) { slimeCenter.y = m; slimeCenter.vy *= -0.4; }
-  if (slimeCenter.y > h - m) { slimeCenter.y = h - m; slimeCenter.vy *= -0.4; }
-
-  const stiffness = 0.045;
-  const damping = 0.86;
-
-  for (const p of slimePoints) {
-    const restX = slimeCenter.x + Math.cos(p.a) * slimeRadius;
-    const restY = slimeCenter.y + Math.sin(p.a) * slimeRadius;
-    p.vx += (restX - p.x) * stiffness;
-    p.vy += (restY - p.y) * stiffness;
-
-    // Pointer push (only when active but not grabbed centrally — gives "poke" deform)
-    if (pointer.active && !pointer.grabbed) {
-      const dx = p.x - pointer.x;
-      const dy = p.y - pointer.y;
-      const dist = Math.sqrt(dx*dx + dy*dy) || 0.001;
-      const range = slimeRadius * 1.3;
-      if (dist < range) {
-        const force = (1 - dist / range) * 7;
-        p.vx += (dx / dist) * force;
-        p.vy += (dy / dist) * force;
+  _smoothBuffer(data, passes) {
+    for (let p = 0; p < passes; p++) {
+      let prev = data[0];
+      for (let i = 1; i < data.length - 1; i++) {
+        const cur = data[i];
+        data[i] = (prev + cur + data[i + 1]) / 3;
+        prev = cur;
       }
     }
-    p.vx *= damping;
-    p.vy *= damping;
-    p.x += p.vx;
-    p.y += p.vy;
+  }
+  async _loadOne(url, fallbackKind, fallbackDuration) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('http ' + res.status);
+      const arr = await res.arrayBuffer();
+      const buf = await this.audioCtx.decodeAudioData(arr);
+      this.loadStatus.push({ url, ok: true });
+      return buf;
+    } catch (e) {
+      console.warn('[slime-sound] ' + url + ' missing — using synthetic ' + fallbackKind, e);
+      this.loadStatus.push({ url, ok: false, error: String(e) });
+      return this._makeSyntheticBuffer(fallbackKind, fallbackDuration);
+    }
+  }
+  async preloadAll() {
+    const pj = [];
+    for (let i = 1; i <= 5; i++) pj.push(this._loadOne('sounds/press/press_0' + i + '.wav', 'press', 0.4 + Math.random()*0.3));
+    const rj = [];
+    for (let i = 1; i <= 4; i++) rj.push(this._loadOne('sounds/release/release_0' + i + '.wav', 'release', 0.15 + Math.random()*0.1));
+    const sj = [];
+    for (let i = 1; i <= 3; i++) sj.push(this._loadOne('sounds/stretch/stretch_0' + i + '.wav', 'stretch', 1.5));
+    const aj = this._loadOne('sounds/ambient/ambient_loop.wav', 'ambient', 10);
+    const [press, release, stretch, ambient] = await Promise.all([
+      Promise.all(pj), Promise.all(rj), Promise.all(sj), aj,
+    ]);
+    this.buffers.press = press; this.buffers.release = release;
+    this.buffers.stretch = stretch; this.buffers.ambient = [ambient];
+    this.lastPlayed.press = new Array(press.length).fill(0);
+    this.lastPlayed.release = new Array(release.length).fill(0);
+  }
+  unlock() { if (this.audioCtx.state === 'suspended') this.audioCtx.resume(); }
+  _spawn(buffer, opts) {
+    opts = opts || {};
+    const gain = opts.gain == null ? 1 : opts.gain;
+    const playbackRate = opts.playbackRate == null ? 1 : opts.playbackRate;
+    const loop = !!opts.loop;
+    if (!buffer) return null;
+    const src = this.audioCtx.createBufferSource();
+    src.buffer = buffer;
+    src.playbackRate.value = playbackRate;
+    src.loop = loop;
+    const g = this.audioCtx.createGain();
+    g.gain.value = gain;
+    src.connect(g); g.connect(this.inputBus);
+    src.start();
+    return { src: src, gain: g };
+  }
+  startPressing() {
+    if (this.pressing) return;
+    this.pressing = true;
+    this._scheduleNextPress();
+  }
+  _scheduleNextPress() {
+    if (!this.pressing) return;
+    this._playOnePress();
+    const delay = 250 + Math.random() * 150;
+    this.pressTimer = setTimeout(() => this._scheduleNextPress(), delay);
+  }
+  _playOnePress() {
+    const pool = this.buffers.press;
+    if (!pool.length) return;
+    const now = performance.now();
+    const fresh = [];
+    for (let i = 0; i < pool.length; i++) if (now - this.lastPlayed.press[i] > 200) fresh.push(i);
+    const idx = fresh.length ? fresh[Math.floor(Math.random() * fresh.length)] : Math.floor(Math.random() * pool.length);
+    this.lastPlayed.press[idx] = now;
+    const k = this.currentIntensity;
+    this._spawn(pool[idx], { gain: 0.3 + k * 0.5, playbackRate: 1.0 - k * 0.15 });
+  }
+  updatePressIntensity(deformation, maxDeformation) {
+    this.currentIntensity = Math.max(0, Math.min(1, deformation / (maxDeformation || 1)));
+  }
+  updateMoveVelocity(velocity) {
+    const TH = 80, t = this.audioCtx.currentTime;
+    if (velocity > TH) {
+      const target = 0.2 + Math.min(1, velocity / 300) * 0.4;
+      if (!this.stretchActive) {
+        if (!this.buffers.stretch.length) return;
+        const idx = Math.floor(Math.random() * this.buffers.stretch.length);
+        const h = this._spawn(this.buffers.stretch[idx], { loop: true, gain: 0 });
+        if (!h) return;
+        this.stretchSource = h.src; this.stretchGain = h.gain;
+        this.stretchGain.gain.cancelScheduledValues(t);
+        this.stretchGain.gain.setValueAtTime(0, t);
+        this.stretchGain.gain.linearRampToValueAtTime(target, t + 0.15);
+        this.stretchActive = true;
+      } else {
+        this.stretchGain.gain.cancelScheduledValues(t);
+        this.stretchGain.gain.linearRampToValueAtTime(target, t + 0.10);
+      }
+    } else if (this.stretchActive) {
+      this.stretchGain.gain.cancelScheduledValues(t);
+      this.stretchGain.gain.linearRampToValueAtTime(0, t + 0.3);
+      const src = this.stretchSource;
+      setTimeout(() => { try { src.stop(); } catch (e) {} }, 350);
+      this.stretchActive = false; this.stretchSource = null; this.stretchGain = null;
+    }
+  }
+  release() {
+    this.pressing = false;
+    if (this.pressTimer) { clearTimeout(this.pressTimer); this.pressTimer = null; }
+    if (this.stretchActive && this.stretchGain) {
+      const t = this.audioCtx.currentTime;
+      this.stretchGain.gain.cancelScheduledValues(t);
+      this.stretchGain.gain.linearRampToValueAtTime(0, t + 0.15);
+      const src = this.stretchSource;
+      setTimeout(() => { try { src.stop(); } catch (e) {} }, 200);
+      this.stretchActive = false; this.stretchSource = null; this.stretchGain = null;
+    }
+    const pool = this.buffers.release;
+    if (!pool.length) { this.currentIntensity = 0; return; }
+    const idx = Math.floor(Math.random() * pool.length);
+    this._spawn(pool[idx], { gain: 0.4 + this.currentIntensity * 0.5 });
+    this.currentIntensity = 0;
+  }
+  setMasterVolume(v) {
+    const c = Math.max(0, Math.min(1, v));
+    const t = this.audioCtx.currentTime;
+    this.master.gain.cancelScheduledValues(t);
+    this.master.gain.linearRampToValueAtTime(c, t + 0.05);
+  }
+  setAmbientEnabled(on) {
+    const t = this.audioCtx.currentTime;
+    if (on) {
+      if (this.ambientSource) return;
+      if (!this.buffers.ambient.length) return;
+      const h = this._spawn(this.buffers.ambient[0], { loop: true, gain: 0 });
+      if (!h) return;
+      this.ambientSource = h.src; this.ambientGain = h.gain;
+      this.ambientGain.gain.setValueAtTime(0, t);
+      this.ambientGain.gain.linearRampToValueAtTime(0.15, t + 1.0);
+    } else {
+      if (!this.ambientSource) return;
+      this.ambientGain.gain.cancelScheduledValues(t);
+      this.ambientGain.gain.linearRampToValueAtTime(0, t + 0.5);
+      const src = this.ambientSource;
+      setTimeout(() => { try { src.stop(); } catch (e) {} }, 600);
+      this.ambientSource = null; this.ambientGain = null;
+    }
+  }
+  stopAll() {
+    this.pressing = false;
+    if (this.pressTimer) { clearTimeout(this.pressTimer); this.pressTimer = null; }
+    if (this.stretchSource) { try { this.stretchSource.stop(); } catch (e) {} }
+    if (this.ambientSource) { try { this.ambientSource.stop(); } catch (e) {} }
+    this.stretchSource = this.stretchGain = null; this.stretchActive = false;
+    this.ambientSource = this.ambientGain = null;
   }
 }
 
-function drawSlime() {
-  const w = slimeCanvas.clientWidth;
-  const h = slimeCanvas.clientHeight;
-  sctx.clearRect(0, 0, w, h);
+const SLIMES = [
+  { id: 'blue',      name: '透明蓝',  primary: '#A8D5F2', secondary: '#FFFFFF' },
+  { id: 'poop',      name: '便便',    primary: '#A6753E', secondary: '#8B5A2A' },
+  { id: 'cat',       name: '小猫',    primary: '#FFE0B5', secondary: '#FFB8C8' },
+  { id: 'dog',       name: '小狗',    primary: '#F5DEB3', secondary: '#8B4513' },
+  { id: 'sheep',     name: '小羊',    primary: '#FFFFFF', secondary: '#E8D5B7' },
+  { id: 'cake',      name: '蛋糕',    primary: '#FFF5E1', secondary: '#FFB6C1' },
+  { id: 'croissant', name: '可颂',    primary: '#E8B973', secondary: '#C8923D' },
+  { id: 'burger',    name: '汉堡',    primary: '#E8B973', secondary: '#90C572' },
+  { id: 'donut',     name: '甜甜圈',  primary: '#E8B973', secondary: '#FFB6C1' },
+];
+let claySlimeCurrentId = 'blue';
 
-  // Build smooth closed curve via midpoints + quadratic curves
-  sctx.beginPath();
-  for (let i = 0; i < NUM_POINTS; i++) {
-    const p0 = slimePoints[i];
-    const p1 = slimePoints[(i + 1) % NUM_POINTS];
-    const mx = (p0.x + p1.x) / 2;
-    const my = (p0.y + p1.y) / 2;
-    if (i === 0) sctx.moveTo(mx, my);
-    else sctx.quadraticCurveTo(p0.x, p0.y, mx, my);
+function renderBlueSlime() {
+  return '<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs>' +
+    '<radialGradient id="blue-body" cx="38%" cy="32%" r="70%">' +
+    '<stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.92"/>' +
+    '<stop offset="35%" stop-color="#D4ECFB" stop-opacity="0.75"/>' +
+    '<stop offset="75%" stop-color="#A8D5F2" stop-opacity="0.62"/>' +
+    '<stop offset="100%" stop-color="#7CB9DD" stop-opacity="0.55"/>' +
+    '</radialGradient>' +
+    '<radialGradient id="blue-depth" cx="50%" cy="55%" r="55%">' +
+    '<stop offset="0%" stop-color="rgba(124,185,221,0)"/>' +
+    '<stop offset="85%" stop-color="rgba(80,140,190,0)"/>' +
+    '<stop offset="100%" stop-color="rgba(60,110,160,0.35)"/>' +
+    '</radialGradient>' +
+    '<radialGradient id="bubble" cx="35%" cy="30%" r="80%">' +
+    '<stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.95"/>' +
+    '<stop offset="100%" stop-color="#E8F4FB" stop-opacity="0.6"/>' +
+    '</radialGradient>' +
+    '</defs>' +
+    '<ellipse cx="140" cy="148" rx="120" ry="108" fill="url(#blue-body)"/>' +
+    '<ellipse cx="140" cy="160" rx="120" ry="108" fill="url(#blue-depth)"/>' +
+    '<ellipse cx="108" cy="82" rx="52" ry="11" fill="rgba(255,255,255,0.85)"/>' +
+    '<ellipse cx="92"  cy="75" rx="22" ry="5"  fill="rgba(255,255,255,0.95)"/>' +
+    '<circle cx="180" cy="125" r="9.5" fill="url(#bubble)"/>' +
+    '<circle cx="180" cy="125" r="4" fill="#FFFFFF" opacity="0.9"/>' +
+    '<circle cx="115" cy="185" r="7" fill="url(#bubble)"/>' +
+    '<circle cx="115" cy="185" r="3" fill="#FFFFFF" opacity="0.85"/>' +
+    '<circle cx="168" cy="208" r="5.5" fill="url(#bubble)" opacity="0.9"/>' +
+    '<circle cx="95"  cy="145" r="4.5" fill="url(#bubble)" opacity="0.8"/>' +
+    '<circle cx="200" cy="175" r="3.5" fill="url(#bubble)" opacity="0.75"/>' +
+    '<ellipse cx="155" cy="245" rx="34" ry="6" fill="rgba(168,213,242,0.45)"/>' +
+    '</svg>';
+}
+
+function renderPoopSlime() {
+  return '<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs>' +
+    '<radialGradient id="poop-body" cx="35%" cy="28%" r="75%"><stop offset="0%" stop-color="#E2B27C"/><stop offset="45%" stop-color="#A6753E"/><stop offset="100%" stop-color="#6E4824"/></radialGradient>' +
+    '<radialGradient id="poop-hl" cx="50%" cy="18%" r="60%"><stop offset="0%" stop-color="rgba(255,240,210,0.55)"/><stop offset="100%" stop-color="rgba(255,240,210,0)"/></radialGradient>' +
+    '</defs>' +
+    '<ellipse cx="140" cy="215" rx="118" ry="46" fill="url(#poop-body)"/>' +
+    '<ellipse cx="125" cy="194" rx="48" ry="9" fill="url(#poop-hl)"/>' +
+    '<ellipse cx="140" cy="160" rx="92" ry="38" fill="url(#poop-body)"/>' +
+    '<ellipse cx="128" cy="140" rx="36" ry="8" fill="url(#poop-hl)"/>' +
+    '<ellipse cx="140" cy="110" rx="66" ry="30" fill="url(#poop-body)"/>' +
+    '<ellipse cx="132" cy="93" rx="26" ry="6" fill="url(#poop-hl)"/>' +
+    '<ellipse cx="140" cy="72" rx="36" ry="20" fill="url(#poop-body)"/>' +
+    '<ellipse cx="138" cy="60" rx="14" ry="4" fill="url(#poop-hl)"/>' +
+    '<ellipse cx="140" cy="48" rx="14" ry="11" fill="url(#poop-body)"/>' +
+    '<ellipse cx="140" cy="42" rx="5" ry="2.5" fill="url(#poop-hl)"/>' +
+    '<ellipse cx="118" cy="158" rx="13" ry="15" fill="#FFFFFF"/>' +
+    '<ellipse cx="162" cy="158" rx="13" ry="15" fill="#FFFFFF"/>' +
+    '<circle cx="120" cy="162" r="7" fill="#2A1810"/>' +
+    '<circle cx="164" cy="162" r="7" fill="#2A1810"/>' +
+    '<circle cx="122" cy="158" r="2.5" fill="#FFFFFF"/>' +
+    '<circle cx="166" cy="158" r="2.5" fill="#FFFFFF"/>' +
+    '<path d="M 120 178 Q 140 192 160 178" stroke="#2A1810" stroke-width="3.2" fill="none" stroke-linecap="round"/>' +
+    '</svg>';
+}
+
+function renderCatSlime() {
+  return '<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs>' +
+    '<radialGradient id="cat-body" cx="38%" cy="30%" r="72%"><stop offset="0%" stop-color="#FFF6E0"/><stop offset="55%" stop-color="#FFE0B5"/><stop offset="100%" stop-color="#D9B786"/></radialGradient>' +
+    '<radialGradient id="cat-ear-in" cx="50%" cy="50%" r="60%"><stop offset="0%" stop-color="#FFD3DD"/><stop offset="100%" stop-color="#FFA8B8"/></radialGradient>' +
+    '</defs>' +
+    '<path d="M 56 92 L 80 22 L 110 76 Z" fill="#D9B786"/>' +
+    '<path d="M 224 92 L 200 22 L 170 76 Z" fill="#D9B786"/>' +
+    '<path d="M 70 88 L 82 40 L 100 76 Z" fill="url(#cat-ear-in)"/>' +
+    '<path d="M 210 88 L 198 40 L 180 76 Z" fill="url(#cat-ear-in)"/>' +
+    '<ellipse cx="140" cy="158" rx="118" ry="105" fill="url(#cat-body)"/>' +
+    '<ellipse cx="108" cy="100" rx="42" ry="9" fill="rgba(255,255,255,0.55)"/>' +
+    '<path d="M 90 148 Q 108 134 126 148"  stroke="#2A1810" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+    '<path d="M 154 148 Q 172 134 190 148" stroke="#2A1810" stroke-width="5" fill="none" stroke-linecap="round"/>' +
+    '<ellipse cx="78" cy="180" rx="15" ry="9" fill="#FFB8C8" opacity="0.78"/>' +
+    '<ellipse cx="202" cy="180" rx="15" ry="9" fill="#FFB8C8" opacity="0.78"/>' +
+    '<path d="M 134 178 L 146 178 L 140 187 Z" fill="#FF7E9B"/>' +
+    '<path d="M 140 187 L 140 202" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>' +
+    '<path d="M 140 202 Q 125 215 116 202" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>' +
+    '<path d="M 140 202 Q 155 215 164 202" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>' +
+    '<g stroke="rgba(120,90,60,0.55)" stroke-width="1.8" stroke-linecap="round">' +
+    '<line x1="60"  y1="195" x2="105" y2="195"/>' +
+    '<line x1="62"  y1="208" x2="105" y2="205"/>' +
+    '<line x1="175" y1="195" x2="220" y2="195"/>' +
+    '<line x1="175" y1="205" x2="218" y2="208"/>' +
+    '</g>' +
+    '</svg>';
+}
+
+function renderDogSlime() {
+  return '<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs>' +
+    '<radialGradient id="dog-body" cx="38%" cy="30%" r="72%"><stop offset="0%" stop-color="#FFF6DC"/><stop offset="55%" stop-color="#F5DEB3"/><stop offset="100%" stop-color="#D2B07A"/></radialGradient>' +
+    '<radialGradient id="dog-ear" cx="40%" cy="25%" r="80%"><stop offset="0%" stop-color="#A57440"/><stop offset="100%" stop-color="#5C3A1A"/></radialGradient>' +
+    '<radialGradient id="dog-tongue" cx="40%" cy="30%" r="70%"><stop offset="0%" stop-color="#FF95A8"/><stop offset="100%" stop-color="#D9445F"/></radialGradient>' +
+    '</defs>' +
+    '<ellipse cx="58"  cy="120" rx="28" ry="58" fill="url(#dog-ear)" transform="rotate(-15 58 120)"/>' +
+    '<ellipse cx="222" cy="120" rx="28" ry="58" fill="url(#dog-ear)" transform="rotate(15 222 120)"/>' +
+    '<ellipse cx="140" cy="158" rx="112" ry="102" fill="url(#dog-body)"/>' +
+    '<ellipse cx="108" cy="100" rx="40" ry="9" fill="rgba(255,255,255,0.55)"/>' +
+    '<circle cx="108" cy="150" r="14" fill="#2A1810"/>' +
+    '<circle cx="172" cy="150" r="14" fill="#2A1810"/>' +
+    '<circle cx="113" cy="146" r="4.2" fill="#FFFFFF"/>' +
+    '<circle cx="177" cy="146" r="4.2" fill="#FFFFFF"/>' +
+    '<path d="M 124 178 Q 140 172 156 178 Q 152 195 140 198 Q 128 195 124 178 Z" fill="#3A2614"/>' +
+    '<circle cx="135" cy="182" r="2.6" fill="rgba(255,255,255,0.55)"/>' +
+    '<path d="M 140 198 L 140 212" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>' +
+    '<ellipse cx="140" cy="228" rx="15" ry="13" fill="url(#dog-tongue)"/>' +
+    '<path d="M 140 218 L 140 238" stroke="rgba(140,40,55,0.5)" stroke-width="1.8" fill="none"/>' +
+    '</svg>';
+}
+
+function renderSheepSlime() {
+  return '<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs>' +
+    '<radialGradient id="sheep-wool" cx="38%" cy="28%" r="72%"><stop offset="0%" stop-color="#FFFFFF"/><stop offset="100%" stop-color="#E4E0D8"/></radialGradient>' +
+    '<radialGradient id="sheep-face" cx="50%" cy="32%" r="70%"><stop offset="0%" stop-color="#F5DDB6"/><stop offset="100%" stop-color="#B89669"/></radialGradient>' +
+    '</defs>' +
+    '<g fill="url(#sheep-wool)">' +
+    '<circle cx="58"  cy="100" r="34"/><circle cx="58"  cy="178" r="34"/>' +
+    '<circle cx="100" cy="226" r="32"/><circle cx="180" cy="226" r="32"/>' +
+    '<circle cx="222" cy="178" r="34"/><circle cx="222" cy="100" r="34"/>' +
+    '<circle cx="180" cy="56"  r="30"/><circle cx="100" cy="56"  r="30"/>' +
+    '<circle cx="140" cy="60"  r="26"/><circle cx="140" cy="222" r="28"/>' +
+    '<circle cx="70"  cy="142" r="32"/><circle cx="210" cy="142" r="32"/>' +
+    '</g>' +
+    '<ellipse cx="140" cy="148" rx="98" ry="92" fill="url(#sheep-wool)"/>' +
+    '<ellipse cx="84"  cy="148" rx="12" ry="22" fill="url(#sheep-face)" transform="rotate(-28 84 148)"/>' +
+    '<ellipse cx="196" cy="148" rx="12" ry="22" fill="url(#sheep-face)" transform="rotate(28 196 148)"/>' +
+    '<ellipse cx="140" cy="158" rx="62" ry="55" fill="url(#sheep-face)"/>' +
+    '<ellipse cx="122" cy="128" rx="22" ry="5" fill="rgba(255,255,255,0.55)"/>' +
+    '<circle cx="125" cy="122" r="11" fill="url(#sheep-wool)"/>' +
+    '<circle cx="142" cy="118" r="10" fill="url(#sheep-wool)"/>' +
+    '<circle cx="158" cy="124" r="11" fill="url(#sheep-wool)"/>' +
+    '<circle cx="120" cy="160" r="5.5" fill="#2A1810"/>' +
+    '<circle cx="160" cy="160" r="5.5" fill="#2A1810"/>' +
+    '<circle cx="122" cy="158" r="1.6" fill="#FFFFFF"/>' +
+    '<circle cx="162" cy="158" r="1.6" fill="#FFFFFF"/>' +
+    '<ellipse cx="100" cy="180" rx="11" ry="7" fill="#FFB8C8" opacity="0.65"/>' +
+    '<ellipse cx="180" cy="180" rx="11" ry="7" fill="#FFB8C8" opacity="0.65"/>' +
+    '<path d="M 134 184 L 146 184 L 140 191 Z" fill="#5C3A1A"/>' +
+    '<path d="M 140 191 Q 130 200 122 196" stroke="#5C3A1A" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
+    '<path d="M 140 191 Q 150 200 158 196" stroke="#5C3A1A" stroke-width="2.5" fill="none" stroke-linecap="round"/>' +
+    '</svg>';
+}
+
+function renderCakeSlime() {
+  return '<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs>' +
+    '<linearGradient id="cake-base" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#FFF8E8"/><stop offset="100%" stop-color="#E0CCA4"/></linearGradient>' +
+    '<linearGradient id="cake-cream" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#FFE5EE"/><stop offset="100%" stop-color="#FFA6BC"/></linearGradient>' +
+    '<radialGradient id="cake-berry" cx="32%" cy="28%" r="78%"><stop offset="0%" stop-color="#FF8A9E"/><stop offset="55%" stop-color="#E0405E"/><stop offset="100%" stop-color="#9C1F38"/></radialGradient>' +
+    '</defs>' +
+    '<path d="M 30 200 Q 30 252 80 254 L 200 254 Q 250 252 250 200 L 250 150 L 30 150 Z" fill="url(#cake-base)"/>' +
+    '<ellipse cx="105" cy="180" rx="40" ry="6" fill="rgba(255,255,255,0.5)"/>' +
+    '<path d="M 30 150 Q 50 168 70 150 Q 90 168 110 150 Q 130 168 150 150 Q 170 168 190 150 Q 210 168 230 150 Q 250 168 250 150 L 250 95 Q 250 50, 195 50 L 85 50 Q 30 50, 30 95 Z" fill="url(#cake-cream)"/>' +
+    '<ellipse cx="105" cy="80" rx="48" ry="9" fill="rgba(255,255,255,0.6)"/>' +
+    '<g fill="rgba(255,255,255,0.92)"><circle cx="75"  cy="68" r="11"/><circle cx="205" cy="68" r="11"/></g>' +
+    '<g fill="rgba(255,230,238,0.85)"><circle cx="75"  cy="64" r="5"/><circle cx="205" cy="64" r="5"/></g>' +
+    '<ellipse cx="140" cy="38" rx="22" ry="28" fill="url(#cake-berry)"/>' +
+    '<ellipse cx="132" cy="28" rx="8" ry="5" fill="rgba(255,255,255,0.55)"/>' +
+    '<circle cx="133" cy="26" r="1.4" fill="#FFEFB8"/>' +
+    '<circle cx="146" cy="30" r="1.4" fill="#FFEFB8"/>' +
+    '<circle cx="128" cy="40" r="1.4" fill="#FFEFB8"/>' +
+    '<circle cx="148" cy="44" r="1.4" fill="#FFEFB8"/>' +
+    '<circle cx="138" cy="48" r="1.4" fill="#FFEFB8"/>' +
+    '<circle cx="142" cy="36" r="1.4" fill="#FFEFB8"/>' +
+    '<path d="M 122 12 L 140 16 L 158 12 L 152 22 L 140 26 L 128 22 Z" fill="#7AB770"/>' +
+    '<path d="M 140 8 L 140 18" stroke="#5A8B52" stroke-width="2" stroke-linecap="round"/>' +
+    '<circle cx="110" cy="208" r="8" fill="#2A1810"/>' +
+    '<circle cx="170" cy="208" r="8" fill="#2A1810"/>' +
+    '<circle cx="113" cy="205" r="2.5" fill="#FFFFFF"/>' +
+    '<circle cx="173" cy="205" r="2.5" fill="#FFFFFF"/>' +
+    '<path d="M 128 226 Q 140 236 152 226" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>' +
+    '</svg>';
+}
+
+function renderCroissantSlime() {
+  return '<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs>' +
+    '<radialGradient id="cro-body" cx="35%" cy="25%" r="80%"><stop offset="0%" stop-color="#FFE39A"/><stop offset="45%" stop-color="#E8B973"/><stop offset="100%" stop-color="#8C5A22"/></radialGradient>' +
+    '<linearGradient id="cro-tip" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" stop-color="#E8B973"/><stop offset="100%" stop-color="#A87838"/></linearGradient>' +
+    '</defs>' +
+    '<ellipse cx="140" cy="160" rx="118" ry="78" fill="url(#cro-body)"/>' +
+    '<ellipse cx="30"  cy="158" rx="22" ry="28" fill="url(#cro-tip)" transform="rotate(-15 30 158)"/>' +
+    '<ellipse cx="250" cy="158" rx="22" ry="28" fill="url(#cro-tip)" transform="rotate(15 250 158)"/>' +
+    '<g stroke="rgba(96,55,18,0.45)" stroke-width="2.6" fill="none" stroke-linecap="round">' +
+    '<path d="M 35 130 Q 90 108 140 115 Q 200 110 248 132"/>' +
+    '<path d="M 30 160 Q 80 138 140 145 Q 200 140 252 162"/>' +
+    '<path d="M 35 190 Q 90 175 140 178 Q 200 175 248 195"/>' +
+    '<path d="M 50 215 Q 100 205 140 208 Q 195 205 235 220"/>' +
+    '<path d="M 70 108 Q 130 88 200 98"/>' +
+    '</g>' +
+    '<ellipse cx="140" cy="105" rx="80" ry="8" fill="rgba(255,250,220,0.6)"/>' +
+    '<ellipse cx="115" cy="102" rx="32" ry="3" fill="rgba(255,250,220,0.85)"/>' +
+    '<circle cx="112" cy="170" r="8.5" fill="#2A1810"/>' +
+    '<circle cx="168" cy="170" r="8.5" fill="#2A1810"/>' +
+    '<circle cx="115" cy="167" r="2.8" fill="#FFFFFF"/>' +
+    '<circle cx="171" cy="167" r="2.8" fill="#FFFFFF"/>' +
+    '<path d="M 124 192 Q 140 203 156 192" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>' +
+    '<ellipse cx="82"  cy="182" rx="13" ry="7" fill="#E89870" opacity="0.55"/>' +
+    '<ellipse cx="198" cy="182" rx="13" ry="7" fill="#E89870" opacity="0.55"/>' +
+    '</svg>';
+}
+
+function renderBurgerSlime() {
+  return '<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs>' +
+    '<radialGradient id="bun-top" cx="50%" cy="28%" r="65%"><stop offset="0%" stop-color="#FFE3A4"/><stop offset="55%" stop-color="#E8B973"/><stop offset="100%" stop-color="#A87838"/></radialGradient>' +
+    '<linearGradient id="bun-bot" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#E8B973"/><stop offset="100%" stop-color="#A06E30"/></linearGradient>' +
+    '<linearGradient id="lettuce" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#B6E59C"/><stop offset="100%" stop-color="#5FA050"/></linearGradient>' +
+    '<linearGradient id="patty" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" stop-color="#8B5226"/><stop offset="100%" stop-color="#4A2810"/></linearGradient>' +
+    '</defs>' +
+    '<path d="M 30 222 Q 30 258 70 260 L 210 260 Q 250 258 250 222 L 250 215 L 30 215 Z" fill="url(#bun-bot)"/>' +
+    '<rect x="26" y="188" width="228" height="32" rx="10" fill="url(#patty)"/>' +
+    '<ellipse cx="80"  cy="202" rx="6" ry="3" fill="rgba(0,0,0,0.18)"/>' +
+    '<ellipse cx="180" cy="208" rx="6" ry="3" fill="rgba(0,0,0,0.18)"/>' +
+    '<ellipse cx="130" cy="200" rx="5" ry="2.5" fill="rgba(0,0,0,0.18)"/>' +
+    '<path d="M 20 176 Q 32 158 50 174 Q 68 156 86 174 Q 104 156 122 174 Q 140 156 158 174 Q 176 156 194 174 Q 212 156 230 174 Q 248 158 260 178 L 260 192 L 20 192 Z" fill="url(#lettuce)"/>' +
+    '<path d="M 28 168 Q 28 60 140 60 Q 252 60 252 168 Z" fill="url(#bun-top)"/>' +
+    '<ellipse cx="108" cy="92" rx="52" ry="14" fill="rgba(255,250,220,0.55)"/>' +
+    '<ellipse cx="85"  cy="86" rx="20" ry="5" fill="rgba(255,250,220,0.85)"/>' +
+    '<g fill="#FFF5DC">' +
+    '<ellipse cx="88"  cy="118" rx="3.2" ry="5.6" transform="rotate(-12 88 118)"/>' +
+    '<ellipse cx="138" cy="92"  rx="3.2" ry="5.6"/>' +
+    '<ellipse cx="186" cy="120" rx="3.2" ry="5.6" transform="rotate(20 186 120)"/>' +
+    '<ellipse cx="114" cy="140" rx="3.2" ry="5.6" transform="rotate(-8 114 140)"/>' +
+    '<ellipse cx="208" cy="150" rx="3.2" ry="5.6" transform="rotate(18 208 150)"/>' +
+    '<ellipse cx="160" cy="138" rx="3.2" ry="5.6" transform="rotate(-25 160 138)"/>' +
+    '</g>' +
+    '<circle cx="105" cy="240" r="7" fill="#2A1810"/>' +
+    '<circle cx="175" cy="240" r="7" fill="#2A1810"/>' +
+    '<circle cx="107" cy="237" r="2.2" fill="#FFFFFF"/>' +
+    '<circle cx="177" cy="237" r="2.2" fill="#FFFFFF"/>' +
+    '<path d="M 128 250 Q 140 258 152 250" stroke="#2A1810" stroke-width="2.2" fill="none" stroke-linecap="round"/>' +
+    '</svg>';
+}
+
+function renderDonutSlime() {
+  return '<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">' +
+    '<defs>' +
+    '<radialGradient id="donut-bread" cx="50%" cy="50%" r="60%"><stop offset="0%" stop-color="#F0C68D"/><stop offset="60%" stop-color="#D2A062"/><stop offset="100%" stop-color="#8C5A22"/></radialGradient>' +
+    '<radialGradient id="donut-glaze" cx="40%" cy="28%" r="80%"><stop offset="0%" stop-color="#FFEAEF"/><stop offset="45%" stop-color="#FFB6C1"/><stop offset="100%" stop-color="#D9709A"/></radialGradient>' +
+    '</defs>' +
+    '<path fill-rule="evenodd" fill="url(#donut-bread)" d="M 140 38 a 102 102 0 1 0 0.1 0 Z M 140 118 a 28 28 0 1 0 0.1 0 Z"/>' +
+    '<path fill-rule="evenodd" fill="url(#donut-glaze)" d="M 140 46 a 94 94 0 0 1 94 94 q 0 6, -4 13 q -8 8, -22 4 q -8 -4, -16 4 q -6 8, -18 0 q -10 -2, -22 6 q -12 4, -22 -2 q -14 4, -24 -4 q -10 -6, -22 0 q -14 0, -22 -10 q -3 -6, -3 -11 a 94 94 0 0 1 81 -94 Z M 140 118 a 28 28 0 1 0 0.1 0 Z"/>' +
+    '<ellipse cx="105" cy="75" rx="42" ry="9" fill="rgba(255,255,255,0.55)"/>' +
+    '<g>' +
+    '<ellipse cx="98"  cy="78"  rx="2.8" ry="6.5" fill="#FF6B9D" transform="rotate(38 98 78)"/>' +
+    '<ellipse cx="128" cy="62"  rx="2.8" ry="6.5" fill="#5BC0E8" transform="rotate(-18 128 62)"/>' +
+    '<ellipse cx="168" cy="66"  rx="2.8" ry="6.5" fill="#FFD656" transform="rotate(12 168 66)"/>' +
+    '<ellipse cx="200" cy="92"  rx="2.8" ry="6.5" fill="#90C572" transform="rotate(50 200 92)"/>' +
+    '<ellipse cx="82"  cy="120" rx="2.8" ry="6.5" fill="#B89AE6" transform="rotate(62 82 120)"/>' +
+    '<ellipse cx="220" cy="155" rx="2.8" ry="6.5" fill="#FF8B6B" transform="rotate(-28 220 155)"/>' +
+    '<ellipse cx="65"  cy="160" rx="2.8" ry="6.5" fill="#FFD656" transform="rotate(22 65 160)"/>' +
+    '<ellipse cx="50"  cy="200" rx="2.8" ry="6.5" fill="#5BC0E8" transform="rotate(-40 50 200)"/>' +
+    '</g>' +
+    '<circle cx="105" cy="190" r="7.5" fill="#2A1810"/>' +
+    '<circle cx="175" cy="190" r="7.5" fill="#2A1810"/>' +
+    '<circle cx="107" cy="187" r="2.4" fill="#FFFFFF"/>' +
+    '<circle cx="177" cy="187" r="2.4" fill="#FFFFFF"/>' +
+    '<path d="M 122 215 Q 140 227 158 215" stroke="#2A1810" stroke-width="2.8" fill="none" stroke-linecap="round"/>' +
+    '<ellipse cx="80"  cy="208" rx="13" ry="7" fill="#FF95B0" opacity="0.55"/>' +
+    '<ellipse cx="200" cy="208" rx="13" ry="7" fill="#FF95B0" opacity="0.55"/>' +
+    '</svg>';
+}
+
+const SLIME_RENDERERS = {
+  blue: renderBlueSlime, poop: renderPoopSlime, cat: renderCatSlime,
+  dog: renderDogSlime, sheep: renderSheepSlime, cake: renderCakeSlime,
+  croissant: renderCroissantSlime, burger: renderBurgerSlime, donut: renderDonutSlime,
+};
+
+const claySlimeEl = document.getElementById('clay-slime');
+const clayGroundEl = document.getElementById('clay-ground');
+
+function renderClaySlime(id) {
+  if (!claySlimeEl) return;
+  claySlimeEl.innerHTML = '';
+  claySlimeEl.style.animation = 'none';
+  void claySlimeEl.offsetWidth;
+  claySlimeEl.style.animation = '';
+  const fn = SLIME_RENDERERS[id];
+  claySlimeEl.innerHTML = fn ? fn() : '';
+}
+
+function renderClayThumb(def) {
+  return '<div class="thumb" style="background: radial-gradient(circle at 35% 30%, #FFFFFF, ' + def.primary + ' 80%);"></div>';
+}
+
+const claySelectorTrack = document.getElementById('clay-selector-track');
+if (claySelectorTrack) {
+  SLIMES.forEach(def => {
+    const btn = document.createElement('button');
+    btn.className = 'clay-pick' + (def.id === claySlimeCurrentId ? ' selected' : '');
+    btn.dataset.id = def.id;
+    btn.setAttribute('aria-label', def.name);
+    btn.innerHTML = renderClayThumb(def);
+    btn.addEventListener('click', () => selectClaySlime(def.id));
+    claySelectorTrack.appendChild(btn);
+  });
+}
+
+function selectClaySlime(id) {
+  if (id === claySlimeCurrentId) return;
+  claySlimeCurrentId = id;
+  document.querySelectorAll('.clay-pick').forEach(el => {
+    el.classList.toggle('selected', el.dataset.id === id);
+  });
+  renderClaySlime(id);
+}
+
+renderClaySlime(claySlimeCurrentId);
+
+// Lazy: init the engine on the first slime tab visit (or first press).
+let slimeEngine = null;
+let slimeEnginePromise = null;
+function ensureSlimeEngine() {
+  if (slimeEnginePromise) return slimeEnginePromise;
+  slimeEnginePromise = (async () => {
+    const eng = new SlimeSoundEngine();
+    await eng.preloadAll();
+    const ok = eng.loadStatus.filter(s => s.ok).length;
+    console.log('[slime] sound engine ready · ' + ok + '/' + eng.loadStatus.length + ' real samples');
+    slimeEngine = eng;
+    return eng;
+  })();
+  return slimeEnginePromise;
+}
+
+// Press / Move / Release wiring
+const PRESS_RAMP_MS = 800;
+let clayPressing = false;
+let clayPressStart = 0;
+let clayLastMove = { x: 0, y: 0, t: 0 };
+let clayVel = 0;
+let clayDef = 0;
+
+function clayPointerPos(e) {
+  if (!claySlimeEl) return { x: 0, y: 0 };
+  const r = claySlimeEl.getBoundingClientRect();
+  if (e.touches && e.touches[0]) {
+    return { x: e.touches[0].clientX - r.left, y: e.touches[0].clientY - r.top };
   }
-  // Close back to first midpoint
-  const p0 = slimePoints[0], pn = slimePoints[NUM_POINTS - 1];
-  sctx.quadraticCurveTo(pn.x, pn.y, (pn.x + p0.x) / 2, (pn.y + p0.y) / 2);
-  sctx.closePath();
-
-  // Average center for shading
-  let cx = 0, cy = 0;
-  for (const pt of slimePoints) { cx += pt.x; cy += pt.y; }
-  cx /= NUM_POINTS; cy /= NUM_POINTS;
-
-  // Drop shadow
-  sctx.save();
-  sctx.shadowColor = 'rgba(0,0,0,0.18)';
-  sctx.shadowBlur = 18;
-  sctx.shadowOffsetY = 8;
-
-  const grad = sctx.createRadialGradient(
-    cx - slimeRadius * 0.35, cy - slimeRadius * 0.42, slimeRadius * 0.05,
-    cx, cy, slimeRadius * 1.4
-  );
-  grad.addColorStop(0, 'rgba(255,255,255,0.95)');
-  grad.addColorStop(0.18, lighten(slimeColor, 20));
-  grad.addColorStop(0.55, slimeColor);
-  grad.addColorStop(1, shade(slimeColor, -28));
-  sctx.fillStyle = grad;
-  sctx.fill();
-  sctx.restore();
-
-  // Big specular highlight
-  sctx.beginPath();
-  sctx.ellipse(cx - slimeRadius * 0.34, cy - slimeRadius * 0.42, slimeRadius * 0.22, slimeRadius * 0.11, -0.45, 0, Math.PI * 2);
-  sctx.fillStyle = 'rgba(255,255,255,0.55)';
-  sctx.fill();
-
-  // Small secondary highlight
-  sctx.beginPath();
-  sctx.ellipse(cx + slimeRadius * 0.25, cy + slimeRadius * 0.1, slimeRadius * 0.08, slimeRadius * 0.04, 0.6, 0, Math.PI * 2);
-  sctx.fillStyle = 'rgba(255,255,255,0.3)';
-  sctx.fill();
+  return { x: e.clientX - r.left, y: e.clientY - r.top };
 }
 
-function shade(hex, percent) {
-  const num = parseInt(hex.slice(1), 16);
-  const r = clamp((num >> 16) + percent);
-  const g = clamp(((num >> 8) & 0xff) + percent);
-  const b = clamp((num & 0xff) + percent);
-  return `rgb(${r},${g},${b})`;
-}
-function lighten(hex, percent) { return shade(hex, percent); }
-function clamp(v) { return Math.max(0, Math.min(255, v)); }
-
-function slimeLoop() {
-  if (document.getElementById('slime-scene').classList.contains('active')) {
-    updateSlime();
-    drawSlime();
+if (claySlimeEl) {
+  claySlimeEl.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    ensureSlimeEngine().then(eng => { eng.unlock(); eng.startPressing(); });
+    clayPressing = true;
+    clayPressStart = performance.now();
+    const p = clayPointerPos(e);
+    clayLastMove = { x: p.x, y: p.y, t: clayPressStart };
+    vibrate(6);
+  });
+  window.addEventListener('pointermove', (e) => {
+    if (!clayPressing) return;
+    const p = clayPointerPos(e);
+    const now = performance.now();
+    const dt = (now - clayLastMove.t) / 1000;
+    if (dt > 0.005) {
+      const dx = p.x - clayLastMove.x, dy = p.y - clayLastMove.y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      clayVel = dist / dt;
+      if (slimeEngine) slimeEngine.updateMoveVelocity(clayVel);
+      clayLastMove = { x: p.x, y: p.y, t: now };
+    }
+  });
+  function onClayUp() {
+    if (!clayPressing) return;
+    clayPressing = false;
+    if (slimeEngine) {
+      slimeEngine.release();
+      slimeEngine.updateMoveVelocity(0);
+    }
+    clayVel = 0;
   }
-  requestAnimationFrame(slimeLoop);
+  window.addEventListener('pointerup', onClayUp);
+  window.addEventListener('pointercancel', onClayUp);
 }
 
-// ============== 3) Monsters (卡通版挤痘痘) ==============
+function clayTick() {
+  if (clayPressing) {
+    const t = performance.now() - clayPressStart;
+    clayDef = Math.min(1, t / PRESS_RAMP_MS);
+    if (slimeEngine) slimeEngine.updatePressIntensity(clayDef, 1);
+  } else {
+    clayDef = Math.max(0, clayDef - 0.08);
+  }
+  if (claySlimeEl && clayGroundEl) {
+    const compress = 1 - clayDef * 0.12;
+    const stretchX = 1 + clayDef * 0.22;
+    claySlimeEl.style.transform = 'scale(' + compress + ')';
+    clayGroundEl.style.transform = 'translateX(-50%) scaleX(' + stretchX + ')';
+    clayGroundEl.style.opacity = 1 - clayDef * 0.25;
+  }
+  if (performance.now() - clayLastMove.t > 80 && clayVel > 0) {
+    clayVel *= 0.7;
+    if (clayVel < 5) clayVel = 0;
+    if (slimeEngine) slimeEngine.updateMoveVelocity(clayVel);
+  }
+  requestAnimationFrame(clayTick);
+}
+requestAnimationFrame(clayTick);
+
+// ============== 3) Monsters ==============
 const pimpleScene = document.getElementById('pimple-scene');
 const monsters = [];
 
@@ -637,7 +1249,7 @@ function spawnMonster() {
     e.stopPropagation();
     ensureAudio();
     m.classList.add('popping');
-    playPop(380 + Math.random() * 480);
+    playMonsterPop();
     vibrate(18);
     spawnSplats(m._x, m._y, m._color);
     setTimeout(() => {
@@ -669,7 +1281,6 @@ function spawnSplats(x, y, color) {
     const dist = 40 + Math.random() * 50;
     const dx = Math.cos(angle) * dist;
     const dy = Math.sin(angle) * dist;
-    // Animate via Web Animations API for reliability
     s.animate(
       [
         { transform: 'translate(-50%,-50%) scale(0.3)', opacity: 1 },
@@ -693,8 +1304,6 @@ function initMonsters() {
 // ============== Init ==============
 function resizeAll() {
   buildBubbles();
-  resizeSlime();
-  // Reposition existing monsters within new bounds
   monsters.forEach(m => {
     const w = pimpleScene.clientWidth, h = pimpleScene.clientHeight;
     if (m._x > w - 40) m._x = w - 40;
@@ -707,7 +1316,6 @@ function resizeAll() {
 window.addEventListener('load', () => {
   resizeAll();
   initMonsters();
-  slimeLoop();
 });
 window.addEventListener('resize', resizeAll);
 window.addEventListener('orientationchange', () => setTimeout(resizeAll, 200));
