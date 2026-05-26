@@ -209,21 +209,21 @@
   }
   .clay-stage-inner {
     position: relative;
-    width: 280px; height: 280px;
+    width: 340px; height: 340px;
     display: grid; place-items: center;
   }
   .clay-ground {
     position: absolute;
-    bottom: 4px; left: 50%;
+    bottom: 6px; left: 50%;
     transform: translateX(-50%) scaleX(1);
-    width: 210px; height: 32px;
+    width: 260px; height: 38px;
     background: radial-gradient(ellipse at center, rgba(180,130,90,0.35) 0%, rgba(180,130,90,0.18) 35%, transparent 70%);
-    filter: blur(2px);
+    filter: blur(2.5px);
     pointer-events: none;
     transition: transform 0.18s var(--clay-ease), opacity 0.18s ease;
   }
   .clay-slime {
-    width: 280px; height: 280px;
+    width: 340px; height: 340px;
     position: relative;
     display: grid; place-items: center;
     cursor: grab;
@@ -821,10 +821,16 @@ function renderBlueSlime() {
     '<stop offset="100%" stop-color="#E8F4FB" stop-opacity="0.6"/>' +
     '</radialGradient>' +
     '</defs>' +
-    '<ellipse cx="140" cy="148" rx="120" ry="108" fill="url(#blue-body)"/>' +
-    '<ellipse cx="140" cy="160" rx="120" ry="108" fill="url(#blue-depth)"/>' +
-    '<ellipse cx="108" cy="82" rx="52" ry="11" fill="rgba(255,255,255,0.85)"/>' +
-    '<ellipse cx="92"  cy="75" rx="22" ry="5"  fill="rgba(255,255,255,0.95)"/>' +
+    // Irregular flowing quadrilateral — 4 corner anchors + bezier sides
+    // with asymmetric outward bulges so it reads as a deformed-cube jelly
+    // rather than a round puddle. Top bulges most (drip-down feel), right
+    // wider than left, bottom flatter.
+    '<path d="M 38 58 C 92 22, 188 28, 244 54 C 290 102, 286 192, 256 240 C 184 274, 90 272, 30 246 C -2 178, 6 102, 38 58 Z" fill="url(#blue-body)"/>' +
+    '<path d="M 38 58 C 92 22, 188 28, 244 54 C 290 102, 286 192, 256 240 C 184 274, 90 272, 30 246 C -2 178, 6 102, 38 58 Z" fill="url(#blue-depth)"/>' +
+    // Top edge specular highlight — drifts along the curving top side
+    '<path d="M 70 56 Q 138 32, 200 50 Q 158 70, 100 76 Q 80 70, 70 56 Z" fill="rgba(255,255,255,0.7)"/>' +
+    '<ellipse cx="108" cy="48" rx="26" ry="6" fill="rgba(255,255,255,0.9)"/>' +
+    // Internal bubbles
     '<circle cx="180" cy="125" r="9.5" fill="url(#bubble)"/>' +
     '<circle cx="180" cy="125" r="4" fill="#FFFFFF" opacity="0.9"/>' +
     '<circle cx="115" cy="185" r="7" fill="url(#bubble)"/>' +
@@ -832,7 +838,8 @@ function renderBlueSlime() {
     '<circle cx="168" cy="208" r="5.5" fill="url(#bubble)" opacity="0.9"/>' +
     '<circle cx="95"  cy="145" r="4.5" fill="url(#bubble)" opacity="0.8"/>' +
     '<circle cx="200" cy="175" r="3.5" fill="url(#bubble)" opacity="0.75"/>' +
-    '<ellipse cx="155" cy="245" rx="34" ry="6" fill="rgba(168,213,242,0.45)"/>' +
+    // Bottom wet edge — follows the bottom bulge
+    '<path d="M 56 248 Q 140 262, 224 244 Q 175 254, 90 252 Q 70 250, 56 248 Z" fill="rgba(168,213,242,0.45)"/>' +
     '</svg>';
 }
 
