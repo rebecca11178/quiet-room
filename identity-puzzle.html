@@ -1210,12 +1210,15 @@ const CHAPTERS = {
         "{B} 周围的内鬼跟我周围一样多。我们一起入职的。",
         "我跟 {B} 身边的脏手数——一样。一样。",
       ],
+      // Naming convention: chainMoreThanMe = "I (speaker) have MORE spies near me than B"
+      //                    chainLessThanMe = "B has MORE spies near them than me"
+      // Matches engine: type 'more' fires when mine > theirs (speaker > B).
       chainMoreThanMe: [
-        "{B} 那一片比我这片烂。比我惨。",
-        "{B} 身边的内鬼比我这边多。这话我不重复。",
+        "我身边比 {B} 那边更不干净。我自己说的，自己受。",
       ],
       chainLessThanMe: [
-        "我身边比 {B} 那边更不干净。我自己说的，自己受。",
+        "{B} 那一片比我这片烂。比我惨。",
+        "{B} 身边的内鬼比我这边多。这话我不重复。",
       ],
       chainBRow: [
         "{B} 那一排有 {n} 个内鬼。我数过——三遍。",
@@ -1466,10 +1469,10 @@ const CHAPTERS = {
       ],
       chainMoreThanMe: [
         "我身边的，比 {B} 身边的更不堪。",
-        "{B} 那一圈，比我这一圈——脏。",
+        "{B} 身边的，比我这边的——干净些。难得。",
       ],
       chainLessThanMe: [
-        "{B} 身边的，比我这边的——干净些。难得。",
+        "{B} 那一圈，比我这一圈——脏。",
       ],
       chainBRow: [
         "{B} 那一排桌边——{n} 个有罪。我可以发誓。",
@@ -1722,10 +1725,10 @@ const CHAPTERS = {
         "{B} 周围跟我一样脏——我们都被人当过工具。",
       ],
       chainMoreThanMe: [
-        "{B} 那一群比我这群更烂。我可以发誓。",
+        "{B} 周围比我这边干净。她朋友少。",
       ],
       chainLessThanMe: [
-        "{B} 周围比我这边干净。她朋友少。",
+        "{B} 那一群比我这群更烂。我可以发誓。",
       ],
       chainBRow: [
         "{B} 那一排 {n} 个动了笔。她数过——比我多。",
@@ -1978,10 +1981,10 @@ const CHAPTERS = {
         "{B} 身边脏的——跟奴婢身边一样多。我们坐得近，看得见。",
       ],
       chainMoreThanMe: [
-        "{B} 那一片，比奴婢这一片——脏。",
+        "{B} 身边的——比奴婢这边——干净。难得。",
       ],
       chainLessThanMe: [
-        "{B} 身边的——比奴婢这边——干净。难得。",
+        "{B} 那一片，比奴婢这一片——脏。",
       ],
       chainBRow: [
         "{B} 那一排——{n} 位有罪。御史台底册里查得到。",
@@ -2237,10 +2240,10 @@ const CHAPTERS = {
         "{B} 周围跟我这边一样——一样多没有影子的。我们坐得近。",
       ],
       chainMoreThanMe: [
-        "{B} 那一片，比我这片——影子少。",
+        "{B} 身边比我这边——更像活的。",
       ],
       chainLessThanMe: [
-        "{B} 身边比我这边——更像活的。",
+        "{B} 那一片，比我这片——影子少。",
       ],
       chainBRow: [
         "{B} 那一排——{n} 个没有重量。Otto 知道。",
